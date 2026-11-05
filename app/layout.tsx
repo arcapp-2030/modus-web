@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 // Se você tiver o AuthProvider criado em outro lugar, ajuste o caminho relativo:
 import { AuthProvider } from "@/contexts/AuthContext"; 
-import InstallPWA from "@/components/InstallPWA";
+import { InstallPWA } from "@/components/InstallPWA";
 
 const inter = Inter({ subsets: ["latin"] });
 
