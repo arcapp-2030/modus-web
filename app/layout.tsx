@@ -1,20 +1,23 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { AuthProvider } from '@/contexts/AuthContext';
-import { InstallPWA } from '@/components/InstallPWA';
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+// Se você tiver o AuthProvider criado em outro lugar, ajuste o caminho relativo:
+import { AuthProvider } from "@/contexts/AuthContext"; 
+import InstallPWA from "@/components/InstallPWA";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Modus',
-  description: 'Seu aplicativo de gestao e produtividade em viagens',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Modus',
-  },
-  formatDetection: {
-    telephone: false,
-  },
+  title: "Modus - Viagens",
+  description: "Aplicativo de gerenciamento de viagens PWA",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -23,14 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={inter.className}>
       <body className="bg-gray-100 antialiased">
-        {/* Container opcional para simular a largura de app no desktop */}
-        <div className="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col">
-          {children}
-          {/* Banner de instrução para iOS */}
-          <InstallPWA />
-        </div>
+        <AuthProvider>
+          {/* Container para simular a largura de app no desktop */}
+          <div className="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col">
+            {children}
+            {/* Banner de instrução para PWA */}
+            <InstallPWA />
+          </div>
         </AuthProvider>
       </body>
     </html>
