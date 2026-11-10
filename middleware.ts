@@ -5,16 +5,16 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('modus_auth_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Defina as rotas públicas que não exigem login
-  const isPublicRoute = pathname === '/login' || pathname === '/register';
+  // Defina as rotas públicas que não exigem login (incluindo a raiz '/')
+  const isPublicRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
 
   // 1. Se tentar acessar uma rota privada sem token -> Redireciona para /login
   if (!token && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. Se já estiver logado e tentar acessar /login -> Redireciona para /dashboard
-  if (token && isPublicRoute) {
+  // 2. Se já estiver logado e tentar acessar /login ou a raiz -> Redireciona para /dashboard
+  if (token && (pathname === '/login' || pathname === '/register')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
