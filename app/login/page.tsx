@@ -36,7 +36,7 @@ export default function LoginPage() {
           Entrar no Modus
         </h2>
         <p className="mt-2 text-center text-sm text-slate-600">
-          Gerencie seus processos de forma rápida e integrada.
+          Gerencie suas viagens de forma rápida e integrada.
         </p>
       </div>
 
