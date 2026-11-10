@@ -83,7 +83,7 @@ export default function OnboardingPage() {
 
       {/* Footer */}
       <footer className="py-6 text-center text-xs text-slate-500 border-t border-slate-800">
-        &copy; 2026 Modus Viagens. Todos os direitos reservados.
+        &copy; 2026 Fucking Year Modus Viagens. Todos os direitos reservados.
       </footer>
     </div>
   );
