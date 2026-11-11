@@ -12,11 +12,18 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Modus - Viagens",
   description: "Aplicativo de gerenciamento de viagens PWA",
-  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "Modus",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#2563eb",
   width: "device-width",
   initialScale: 1,
 };
@@ -41,16 +48,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-export const metadata: Metadata = {
-  title: "Modus - Viagens",
-  description: "Aplicativo de gerenciamento de viagens PWA",
-  appleWebApp: {
-    capable: true,
-    title: "Modus",
-    statusBarStyle: "default",
-  },
-  icons: {
-    apple: "/icons/apple-touch-icon.png",
-  },
-};
