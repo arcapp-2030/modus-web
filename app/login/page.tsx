@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     try {
       // Ajuste a rota da sua API de autenticação conforme o seu backend atual
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/api/login', { email, password });
       const { token, user } = response.data;
 
       login(token, user);
