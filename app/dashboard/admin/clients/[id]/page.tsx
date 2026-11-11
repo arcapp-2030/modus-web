@@ -69,20 +69,24 @@ function ClientDetailsContent({ params }: { params: Promise<{ id: string }> }) {
         ) : (
           <div className="space-y-3">
             {client.trips.map((trip: any) => (
-              <div key={trip.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-base font-bold text-white">{trip.title}</h3>
-                  <span className="text-[10px] font-extrabold text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-md border border-sky-500/20">
-                    {trip.itinerary?.length || 0} Eventos
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-slate-400">
-                  <span className="flex items-center gap-1.5">
-                    <MapPin size={14} className="text-sky-400" /> {trip.destination}
-                  </span>
-                </div>
-              </div>
-            ))}
+             <Link
+    key={trip.id}
+    href={`/dashboard/admin/trips/${trip.id}/edit`}
+    className="block bg-slate-900 hover:bg-slate-800/80 border border-slate-800 rounded-xl p-5 transition-all group"
+  >
+    <div className="flex justify-between items-start mb-2">
+      <h3 className="text-base font-bold text-white group-hover:text-sky-400 transition-colors">{trip.title}</h3>
+      <span className="text-[10px] font-extrabold text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-md border border-sky-500/20">
+        {trip.itinerary?.length || 0} Eventos
+      </span>
+    </div>
+    <div className="flex items-center gap-4 text-xs text-slate-400">
+      <span className="flex items-center gap-1.5">
+        <MapPin size={14} className="text-sky-400" /> {trip.destination}
+      </span>
+    </div>
+  </Link> 
+              ))}
           </div>
         )}
       </div>
