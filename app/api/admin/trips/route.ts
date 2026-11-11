@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'seu-segredo-jwt-super-seguro';
 
-// Helper para validar autenticação e permissão de agente/admin
 function verifyAdmin(request: Request) {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
@@ -17,31 +16,20 @@ function verifyAdmin(request: Request) {
     const token = cookies['modus_auth_token'];
     if (!token) return null;
     return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const trips = await prisma.trip.findMany({
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        itinerary: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return NextResponse.json(trips, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: 'Erro ao buscar viagens' }, { status: 500 });
+    console.error('Erro na verificação do token:', error);
+    return null;
   }
 }
 
 export async function POST(request: Request) {
   try {
     const userSession: any = verifyAdmin(request);
+    
+    // Se quiser testar sem travar na verificação de admin por enquanto, 
+    // comente temporariamente a linha abaixo:
     if (!userSession) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+      return NextResponse.json({ error: 'Não autorizado ou token inválido' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -78,8 +66,12 @@ export async function POST(request: Request) {
       { message: 'Viagem e itinerário cadastrados com sucesso!', trip: newTrip },
       { status: 201 }
     );
-  } catch (error) {
-    console.error('Erro ao cadastrar viagem:', error);
-    return NextResponse.json({ error: 'Erro interno ao salvar viagem' }, { status: 500 });
+  } catch (error: any) {
+    console.error('ERRO DETALHADO AO SALVAR VIAGEM:', error);
+    // Retorna a mensagem real do erro do Prisma para facilitar o diagnóstico
+    return NextResponse.json(
+      { error: `Erro interno: ${error.message || 'Desconhecido'}` },
+      { status: 500 }
+    );
   }
 }

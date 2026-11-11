@@ -68,6 +68,7 @@ export default function Sidebar({
 
   const menuItems = [
     { id: 'index', label: 'Início', icon: Home, path: '/dashboard' },
+    { id: 'admin-trips', label: 'Painel do Agente', icon: Compass, path: '/dashboard/admin/trips' }, // Atalho do Agente
     { id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard/orbis' },
     {
       id: 'busca',
