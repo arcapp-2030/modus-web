@@ -1,3 +1,5 @@
+// app/layout.tsx
+
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -17,7 +19,6 @@ export const viewport: Viewport = {
   themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -30,7 +31,7 @@ export default function RootLayout({
       <body className="bg-gray-100 antialiased">
         <AuthProvider>
           {/* Container para simular a largura de app no desktop */}
-          <div className="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col">
+          <div className="mx-auto min-h-screen bg-white shadow-xl flex flex-col">
             {children}
             {/* Banner de instrução para PWA */}
             <InstallPWA />
@@ -40,3 +41,16 @@ export default function RootLayout({
     </html>
   );
 }
+
+export const metadata: Metadata = {
+  title: "Modus - Viagens",
+  description: "Aplicativo de gerenciamento de viagens PWA",
+  appleWebApp: {
+    capable: true,
+    title: "Modus",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
