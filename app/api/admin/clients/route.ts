@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 // GET: Lista todos os clientes cadastrados no sistema
 export async function GET() {
   try {
     const clients = await prisma.user.findMany({
-      where: { role: 'client' },
+      where: { role: Role.CLIENT },
       select: {
         id: true,
         name: true,
@@ -38,7 +39,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verifica se já existe um cliente com este e-mail
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return NextResponse.json(
@@ -47,7 +47,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Senha padrão ou definida no cadastro (hash)
     const defaultPassword = password || 'Modus@123';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
@@ -55,8 +54,8 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
-        password: hashedPassword,
-        role: 'client',
+        passwordHash: hashedPassword,
+        role: Role.CLIENT,
       },
       select: {
         id: true,
