@@ -1,12 +1,10 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Plane, MapPin } from 'lucide-react';
 
-export default function ClientDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+function ClientDetailsContent({ params }: { params: Promise<{ id: string }> }) {
   const { id: clientId } = use(params);
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,21 +28,14 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#080d1a] text-white flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <p className="text-xs text-slate-400">Carregando informações do cliente...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white p-6 md:p-10 max-w-4xl mx-auto">
-      <Link
-        href="/dashboard/admin"
-        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-6"
-      >
-        <ArrowLeft size={16} /> Voltar ao Painel
-      </Link>
-
+    <div>
       {/* Perfil Resumido do Cliente */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -95,6 +86,23 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+export default function ClientDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <div className="min-h-screen bg-[#080d1a] text-white p-6 md:p-10 max-w-4xl mx-auto">
+      <Link
+        href="/dashboard/admin"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-6"
+      >
+        <ArrowLeft size={16} /> Voltar ao Painel
+      </Link>
+
+      <Suspense fallback={<div className="text-xs text-slate-400 py-20 text-center">Carregando painel...</div>}>
+        <ClientDetailsContent params={params} />
+      </Suspense>
     </div>
   );
 }
