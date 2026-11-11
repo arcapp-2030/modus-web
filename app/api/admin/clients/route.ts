@@ -3,11 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-// GET: Lista todos os clientes cadastrados no sistema
+// GET: Lista todos os clientes cadastrados no sistema (Usuários com role USER)
 export async function GET() {
   try {
     const clients = await prisma.user.findMany({
-      where: { role: Role.CLIENT },
+      where: { role: Role.USER },
       select: {
         id: true,
         name: true,
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         name,
         email,
         passwordHash: hashedPassword,
-        role: Role.CLIENT,
+        role: Role.USER,
       },
       select: {
         id: true,
