@@ -1,8 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Plane, Calendar, MapPin } from 'lucide-react';
+import { ArrowLeft, Plus, Plane, MapPin } from 'lucide-react';
 
 export default function ClientDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: clientId } = use(params);
