@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plane, Building2, Utensils, Compass, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 interface ItineraryFormItem {
   title: string;
@@ -13,11 +15,14 @@ interface ItineraryFormItem {
   voucherFile: string;
 }
 
-export default function AdminTripsPage() {
+function AdminTripsForm() {
+  const searchParams = useSearchParams();
+  const preselectedClientId = searchParams.get('clientId') || '';
+
   const [clients, setClients] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState(preselectedClientId);
   
   // Lista de itinerários criados para a viagem
   const [itinerary, setItinerary] = useState<ItineraryFormItem[]>([]);
@@ -33,9 +38,13 @@ export default function AdminTripsPage() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    if (preselectedClientId) {
+      setSelectedUserId(preselectedClientId);
+    }
+    
     async function fetchClients() {
       try {
-        const res = await fetch('/api/admin/users');
+        const res = await fetch('/api/admin/clients');
         if (res.ok) {
           const data = await res.json();
           setClients(data);
@@ -45,7 +54,7 @@ export default function AdminTripsPage() {
       }
     }
     fetchClients();
-  }, []);
+  }, [preselectedClientId]);
 
   const handleAddItineraryItem = () => {
     if (!itemTitle) return;
@@ -96,7 +105,6 @@ export default function AdminTripsPage() {
       setMessage('Viagem e itinerário cadastrados com sucesso!');
       setTitle('');
       setDestination('');
-      setSelectedUserId('');
       setItinerary([]);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar';
@@ -108,13 +116,23 @@ export default function AdminTripsPage() {
 
   return (
     <div className="min-h-screen bg-[#080d1a] text-white p-6 md:p-10 max-w-4xl mx-auto">
+      {/* Botão de Retorno condicional */}
+      <div className="mb-6 flex items-center justify-between">
+        <Link
+          href={selectedUserId ? `/dashboard/admin/clients/${selectedUserId}` : '/dashboard/admin'}
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft size={16} /> {selectedUserId ? 'Voltar ao Perfil do Cliente' : 'Voltar ao Painel'}
+        </Link>
+      </div>
+
       <div className="mb-8">
         <span className="text-xs font-extrabold text-sky-400 tracking-[2px] uppercase">
           PAINEL DO AGENTE DE VIAGEM
         </span>
         <h1 className="text-2xl font-black mt-1">Cadastro de Viagens & Itinerários</h1>
         <p className="text-xs text-slate-400 mt-1">
-          Gerencie viagens de clientes, monte o cronograma passo a passo e anexe os vouchers.
+          Monte o cronograma passo a passo e anexe os vouchers do passageiro.
         </p>
       </div>
 
@@ -122,6 +140,14 @@ export default function AdminTripsPage() {
         <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-center gap-2">
           <CheckCircle2 size={16} />
           {message}
+          {selectedUserId && (
+            <Link
+              href={`/dashboard/admin/clients/${selectedUserId}`}
+              className="ml-auto underline font-bold text-emerald-300"
+            >
+              Ver perfil do cliente
+            </Link>
+          )}
         </div>
       )}
 
@@ -315,5 +341,13 @@ export default function AdminTripsPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function AdminTripsPage() {
+  return (
+    <Suspense fallback={<div className="text-xs text-slate-400 p-10 text-center">Carregando formulário...</div>}>
+      <AdminTripsForm />
+    </Suspense>
   );
 }
