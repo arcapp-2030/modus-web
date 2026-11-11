@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   Calendar,
   Clock,
@@ -11,44 +10,69 @@ import {
   Menu,
   Plane,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
-import Sidebar from '@/components/SideBar'; // Ajuste o caminho se necessário
-import { API_BASE_URL } from '@/config/api'; // Ajuste o caminho se necessário
-import { useSync } from '@/hooks/useSync'; // Ajuste o caminho se necessário
-import {
-  fetchClientTrips,
-  ItineraryItem,
-  Trip,
-} from '@/services/tripService'; // Ajuste o caminho se necessário
-import { useAuth } from '@/contexts/AuthContext'; // Ajuste o caminho se necessário
+import Sidebar from '@/components/SideBar';
+import { api } from '@/services/api';
+
+export interface ItineraryItem {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  location?: string;
+  date?: string;
+  time?: string;
+  voucher_file?: string | null;
+}
+
+export interface Trip {
+  id: string;
+  title: string;
+  itinerary: ItineraryItem[];
+}
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { session } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
   const [nextEvent, setNextEvent] = useState<ItineraryItem | null>(null);
-
-  const { isSyncing, triggerSync } = useSync('trip-tokyo-2026');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!session) return;
-
     try {
-      const trips = await fetchClientTrips();
+      // Chamada usando a instância padronizada do Axios
+      // Quando a rota /api/trips estiver pronta, basta descommentar:
+      // const res = await api.get('/trips');
+      // const trips = res.data;
+
+      // Mock inicial idêntico ao mobile até a API estar 100% plugada
+      const trips: Trip[] = [
+        {
+          id: '1',
+          title: 'Tóquio, Japão',
+          itinerary: [
+            {
+              id: 'item-1',
+              title: 'Voo JL048 para Haneda',
+              subtitle: 'Embarque no terminal 3',
+              location: 'Aeroporto Internacional de Guarulhos',
+              date: '20 de Out, 2026',
+              time: '23:15',
+              voucher_file: null,
+            },
+          ],
+        },
+      ];
+
       if (trips.length > 0) {
         const trip = trips[0];
         setCurrentTrip(trip);
-        if (trip.itinerary && trip.itinerary.length > 0) {
-          setNextEvent(trip.itinerary[0]);
-        } else {
-          setNextEvent(null);
-        }
+        setNextEvent(trip.itinerary?.[0] || null);
       }
     } catch (error: any) {
       console.error('Erro ao carregar dados:', error.message);
     }
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -59,14 +83,13 @@ export default function HomeScreen() {
       alert('Nenhum voucher anexado para este evento.');
       return;
     }
-    const cleanBase = API_BASE_URL.replace('/api', '');
-    const fullUrl = `${cleanBase}/${fileUrl}`;
-    window.open(fullUrl, '_blank');
+    window.open(fileUrl, '_blank');
   };
 
   const handleRefresh = async () => {
-    await triggerSync();
+    setIsSyncing(true);
     await loadData();
+    setTimeout(() => setIsSyncing(false), 600);
   };
 
   return (
@@ -76,7 +99,7 @@ export default function HomeScreen() {
         <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="w-10 h-10 rounded-full bg-[rgba(15,23,42,0.8)] border border-[rgba(51,65,85,0.6)] flex items-center justify-center transition-all hover:bg-slate-800 active:scale-95"
+            className="w-10 h-10 rounded-full bg-slate-900/80 border border-slate-700/60 flex items-center justify-center transition-all hover:bg-slate-800 active:scale-95"
           >
             <Menu size={20} className="text-sky-400" />
           </button>
@@ -91,27 +114,28 @@ export default function HomeScreen() {
           </div>
 
           <button
-            onClick={() => router.push('/dashboard/busca')} // Ajuste conforme a rota web
-            className="w-10 h-10 rounded-full bg-[rgba(15,23,42,0.8)] border border-[rgba(51,65,85,0.6)] flex items-center justify-center transition-all hover:bg-slate-800 active:scale-95"
+            onClick={() => router.push('/dashboard/settings')}
+            className="w-10 h-10 rounded-full bg-slate-900/80 border border-slate-700/60 flex items-center justify-center transition-all hover:bg-slate-800 active:scale-95"
           >
             <Compass size={20} className="text-slate-400" />
           </button>
         </div>
 
-        {/* Botão de Atualizar / Sincronizar (Substitui o PullToRefresh nativo) */}
+        {/* Botão de Atualizar / Sincronizar */}
         <div className="flex justify-end mb-4">
           <button
             onClick={handleRefresh}
             disabled={isSyncing}
-            className="text-xs text-sky-400 hover:underline flex items-center gap-1 disabled:opacity-50"
+            className="text-xs text-sky-400 hover:underline flex items-center gap-1.5 disabled:opacity-50"
           >
-            {isSyncing ? 'Sincronizando...' : '🔄 Atualizar Dados'}
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            <span>{isSyncing ? 'Atualizando...' : 'Atualizar Dados'}</span>
           </button>
         </div>
 
         {/* TripHeroCard Dinâmico (Próximo Evento) */}
         {nextEvent ? (
-          <div className="bg-[rgba(15,23,42,0.9)] rounded-2xl p-5 border-[1.5px] border-[rgba(56,189,248,0.4)] mb-6 shadow-2xl shadow-black/40">
+          <div className="bg-[#0f172a]/90 rounded-2xl p-5 border-[1.5px] border-sky-400/40 mb-6 shadow-2xl shadow-black/40">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
                 <Sparkles size={14} className="text-sky-400" />
@@ -120,7 +144,7 @@ export default function HomeScreen() {
                 </span>
               </div>
 
-              <span className="text-[11px] font-bold text-emerald-400 bg-[rgba(34,197,94,0.12)] px-2 py-0.5 rounded-md">
+              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                 Confirmado
               </span>
             </div>
@@ -146,31 +170,35 @@ export default function HomeScreen() {
               )}
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-slate-400 shrink-0" />
-                  <span className="text-xs text-slate-300 font-medium">
-                    {nextEvent.date}
-                  </span>
-                </div>
+                {nextEvent.date && (
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-slate-400 shrink-0" />
+                    <span className="text-xs text-slate-300 font-medium">
+                      {nextEvent.date}
+                    </span>
+                  </div>
+                )}
 
-                <div className="flex items-center gap-1.5">
-                  <Clock size={16} className="text-slate-400 shrink-0" />
-                  <span className="text-xs text-slate-300 font-medium">
-                    {nextEvent.time}
-                  </span>
-                </div>
+                {nextEvent.time && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={16} className="text-slate-400 shrink-0" />
+                    <span className="text-xs text-slate-300 font-medium">
+                      {nextEvent.time}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
             <button
               onClick={() => openVoucher(nextEvent.voucher_file)}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all border border-[rgba(56,189,248,0.4)] shadow-lg shadow-blue-600/20 active:scale-[0.99]"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all border border-sky-400/40 shadow-lg shadow-blue-600/20 active:scale-[0.99]"
             >
               Ver Detalhes & Voucher
             </button>
           </div>
         ) : (
-          <div className="p-6 bg-[rgba(15,23,42,0.6)] rounded-2xl flex flex-col items-center justify-center mb-6 border border-slate-800">
+          <div className="p-6 bg-slate-900/60 rounded-2xl flex flex-col items-center justify-center mb-6 border border-slate-800">
             <Plane size={32} className="text-slate-500" />
             <p className="text-slate-400 mt-2 text-xs">
               Nenhuma atividade agendada.
@@ -178,7 +206,7 @@ export default function HomeScreen() {
           </div>
         )}
 
-        {/* Lista Completa do Itinerário da Viagem */}
+        {/* Lista Completa do Itinerário */}
         {currentTrip?.itinerary && currentTrip.itinerary.length > 0 && (
           <div className="mt-2">
             <h3 className="text-[11px] font-extrabold text-sky-400 mb-4 tracking-[1.5px] uppercase">
@@ -189,7 +217,7 @@ export default function HomeScreen() {
               {currentTrip.itinerary.map((item, index) => (
                 <div
                   key={item.id || index}
-                  className="bg-[rgba(15,23,42,0.7)] rounded-2xl p-4 border border-[rgba(51,65,85,0.4)]"
+                  className="bg-slate-900/70 rounded-2xl p-4 border border-slate-700/40"
                 >
                   <div className="flex justify-between items-center mb-1.5">
                     <h4 className="text-[15px] font-bold text-white flex-1 mr-2">
@@ -228,7 +256,7 @@ export default function HomeScreen() {
                   {item.voucher_file && (
                     <button
                       onClick={() => openVoucher(item.voucher_file)}
-                      className="w-full mt-3 py-2 bg-[rgba(37,99,235,0.15)] hover:bg-[rgba(37,99,235,0.25)] rounded-lg text-center border border-[rgba(37,99,235,0.3)] transition-all"
+                      className="w-full mt-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 rounded-lg text-center border border-blue-500/30 transition-all"
                     >
                       <span className="text-xs font-semibold text-blue-400">
                         Ver Voucher / Anexo
@@ -242,10 +270,8 @@ export default function HomeScreen() {
         )}
       </div>
 
-      {/* Componente Sidebar */}
       <Sidebar
         isOpen={isSidebarOpen}
-        onOpen={() => setIsSidebarOpen(true)}
         onClose={() => setIsSidebarOpen(false)}
         activeRoute="index"
       />
