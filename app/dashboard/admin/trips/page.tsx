@@ -261,7 +261,7 @@ function AdminTripsForm() {
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">Data</label>
               <input
-                type="text"
+                type="date"
                 placeholder="Ex: 20 de Out, 2026"
                 value={itemDate}
                 onChange={(e) => setItemDate(e.target.value)}
@@ -272,7 +272,7 @@ function AdminTripsForm() {
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">Horário</label>
               <input
-                type="text"
+                type="time"
                 placeholder="Ex: 23:15"
                 value={itemTime}
                 onChange={(e) => setItemTime(e.target.value)}

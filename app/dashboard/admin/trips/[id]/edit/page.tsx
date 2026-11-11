@@ -3,7 +3,7 @@
 import { useState, useEffect, use, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Trash2, CheckCircle2, Save, Plane } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, CheckCircle2, Save, Edit3, X } from 'lucide-react';
 
 interface ItineraryItem {
   id?: string;
@@ -25,7 +25,7 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
   const [userId, setUserId] = useState('');
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
 
-  // Campos temporários para adicionar/editar item do itinerário
+  // Campos temporários do formulário de item
   const [itemTitle, setItemTitle] = useState('');
   const [itemSubtitle, setItemSubtitle] = useState('');
   const [itemType, setItemType] = useState('flight');
@@ -33,6 +33,9 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
   const [itemDate, setItemDate] = useState('');
   const [itemTime, setItemTime] = useState('');
   const [itemVoucher, setItemVoucher] = useState('');
+
+  // Índice do item que está sendo editado no momento (null = criando novo)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,33 +61,65 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
     fetchTrip();
   }, [tripId]);
 
-  const handleAddItem = () => {
+  // Salvar ou Atualizar item na lista local do itinerário
+  const handleSaveItem = () => {
     if (!itemTitle) return;
-    setItinerary([
-      ...itinerary,
-      {
-        title: itemTitle,
-        subtitle: itemSubtitle,
-        type: itemType,
-        location: itemLocation,
-        date: itemDate,
-        time: itemTime,
-        voucherFile: itemVoucher,
-      },
-    ]);
+
+    const newItem: ItineraryItem = {
+      title: itemTitle,
+      subtitle: itemSubtitle,
+      type: itemType,
+      location: itemLocation,
+      date: itemDate,
+      time: itemTime,
+      voucherFile: itemVoucher,
+    };
+
+    if (editingIndex !== null) {
+      // Atualiza o item existente
+      const updated = [...itinerary];
+      updated[editingIndex] = newItem;
+      setItinerary(updated);
+      setEditingIndex(null);
+    } else {
+      // Adiciona um novo item
+      setItinerary([...itinerary, newItem]);
+    }
+
+    // Limpa os campos
+    clearItemForm();
+  };
+
+  const clearItemForm = () => {
     setItemTitle('');
     setItemSubtitle('');
     setItemLocation('');
     setItemDate('');
     setItemTime('');
     setItemVoucher('');
+    setEditingIndex(null);
+  };
+
+  const handleEditItem = (index: number) => {
+    const item = itinerary[index];
+    setItemTitle(item.title);
+    setItemSubtitle(item.subtitle || '');
+    setItemType(item.type || 'flight');
+    setItemLocation(item.location || '');
+    setItemDate(item.date || '');
+    setItemTime(item.time || '');
+    setItemVoucher(item.voucherFile || '');
+    setEditingIndex(index);
   };
 
   const handleRemoveItem = (index: number) => {
     setItinerary(itinerary.filter((_, i) => i !== index));
+    if (editingIndex === index) {
+      clearItemForm();
+    }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSaveTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setMessage('');
@@ -99,7 +134,7 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao atualizar viagem');
 
-      setMessage('Viagem atualizada com sucesso!');
+      setMessage('Viagem e itinerário atualizados com sucesso!');
       setTimeout(() => {
         if (userId) router.push(`/dashboard/admin/clients/${userId}`);
       }, 1000);
@@ -140,17 +175,15 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
           onClick={handleDeleteTrip}
           className="text-xs text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-xl transition-all"
         >
-          Excluir Viagem
+          Excluir Viagem Inteira
         </button>
       </div>
 
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <span className="text-xs font-extrabold text-sky-400 tracking-[2px] uppercase">
-            EDITOR DE ROTEIRO
-          </span>
-          <h1 className="text-2xl font-black mt-1">Editar Viagem</h1>
-        </div>
+      <div className="mb-8">
+        <span className="text-xs font-extrabold text-sky-400 tracking-[2px] uppercase">
+          EDITOR DE ROTEIRO
+        </span>
+        <h1 className="text-2xl font-black mt-1">Editar Viagem & Itinerário</h1>
       </div>
 
       {message && (
@@ -159,7 +192,7 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSaveTrip} className="space-y-6">
         {/* Informações Principais */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
           <h2 className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">1. Informações Gerais</h2>
@@ -189,9 +222,22 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        {/* Gerenciamento de Itinerário & Vouchers */}
+        {/* Gerenciamento / Edição de Itinerário & Vouchers */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h2 className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">2. Itinerário & Vouchers</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">
+              {editingIndex !== null ? `Editando Item #${editingIndex + 1}` : '2. Adicionar Evento ao Itinerário'}
+            </h2>
+            {editingIndex !== null && (
+              <button
+                type="button"
+                onClick={clearItemForm}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+              >
+                <X size={14} /> Cancelar Edição
+              </button>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
@@ -235,7 +281,7 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">Data</label>
               <input
-                type="text"
+                type="date"
                 placeholder="Ex: 20 de Out, 2026"
                 value={itemDate}
                 onChange={(e) => setItemDate(e.target.value)}
@@ -246,7 +292,7 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">Horário</label>
               <input
-                type="text"
+                type="time"
                 placeholder="Ex: 23:15"
                 value={itemTime}
                 onChange={(e) => setItemTime(e.target.value)}
@@ -268,14 +314,26 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
 
           <button
             type="button"
-            onClick={handleAddItem}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold py-2.5 rounded-xl border border-sky-500/30 transition-all flex items-center justify-center gap-2 text-xs"
+            onClick={handleSaveItem}
+            className={`w-full font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 text-xs border ${
+              editingIndex !== null
+                ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500/40'
+                : 'bg-slate-800 hover:bg-slate-700 text-sky-400 border-sky-500/30'
+            }`}
           >
-            <Plus size={16} /> Adicionar Novo Item ao Itinerário
+            {editingIndex !== null ? (
+              <>
+                <Edit3 size={16} /> Atualizar Item no Itinerário
+              </>
+            ) : (
+              <>
+                <Plus size={16} /> Adicionar Evento ao Itinerário
+              </>
+            )}
           </button>
         </div>
 
-        {/* Lista de Eventos Atuais */}
+        {/* Lista de Eventos Atuais com Botões de Editar e Remover */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
             Itinerário Atual ({itinerary.length} itens)
@@ -286,8 +344,15 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
           ) : (
             <div className="space-y-2">
               {itinerary.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                  <div>
+                <div
+                  key={idx}
+                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
+                    editingIndex === idx
+                      ? 'bg-amber-500/10 border-amber-500/40'
+                      : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex-1 mr-4">
                     <span className="text-xs font-bold text-sky-400 mr-2">[{item.type.toUpperCase()}]</span>
                     <span className="text-sm font-semibold text-white">{item.title}</span>
                     <p className="text-[11px] text-slate-400 mt-0.5">
@@ -295,13 +360,25 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
                       {item.voucherFile && <span className="text-emerald-400 ml-2">📄 Com Voucher</span>}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(idx)}
-                    className="text-red-400 hover:text-red-300 p-1.5 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleEditItem(idx)}
+                      title="Editar item"
+                      className="text-sky-400 hover:text-sky-300 bg-sky-500/10 border border-sky-500/20 p-2 rounded-lg transition-all"
+                    >
+                      <Edit3 size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(idx)}
+                      title="Remover item"
+                      className="text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 p-2 rounded-lg transition-all"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -314,7 +391,7 @@ function EditTripContent({ params }: { params: Promise<{ id: string }> }) {
             disabled={saving}
             className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 text-sm flex items-center gap-2"
           >
-            <Save size={16} /> {saving ? 'Salvando Alterações...' : 'Salvar Alterações da Viagem'}
+            <Save size={16} /> {saving ? 'Salvando Alterações...' : 'Salvar Alterações Globais da Viagem'}
           </button>
         </div>
       </form>
