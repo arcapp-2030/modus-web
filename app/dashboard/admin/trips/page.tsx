@@ -1,24 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plane, Building2, Utensils, Compass, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 
-interface PageProps {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+interface ItineraryFormItem {
+  title: string;
+  subtitle: string;
+  type: string;
+  location: string;
+  date: string;
+  time: string;
+  voucherFile: string;
 }
 
-export default function AdminTripsPage({ params, searchParams }: PageProps) {
-  // desempacota promises dos params se necessário futuramente:
-  // const resolvedParams = params ? React.use(params) : {};
-
-  const [clients, setClients] = useState<any[]>([]);
+export default function AdminTripsPage() {
+  const [clients, setClients] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
   
-  // Estado para os itens do itinerário da viagem atual
-  const [itinerary, setItinerary] = useState<any[]>([]);
+  // Lista de itinerários criados para a viagem
+  const [itinerary, setItinerary] = useState<ItineraryFormItem[]>([]);
   const [itemTitle, setItemTitle] = useState('');
   const [itemSubtitle, setItemSubtitle] = useState('');
   const [itemType, setItemType] = useState('flight');
@@ -30,7 +32,6 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Busca lista de usuários cadastrados para associar a viagem
   useEffect(() => {
     async function fetchClients() {
       try {
@@ -40,7 +41,7 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
           setClients(data);
         }
       } catch (e) {
-        console.error('Erro ao carregar clientes');
+        console.error('Erro ao carregar clientes:', e);
       }
     }
     fetchClients();
@@ -48,8 +49,8 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
 
   const handleAddItineraryItem = () => {
     if (!itemTitle) return;
-    setItinerary([
-      ...itinerary,
+    setItinerary((prev) => [
+      ...prev,
       {
         title: itemTitle,
         subtitle: itemSubtitle,
@@ -69,7 +70,7 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
   };
 
   const handleRemoveItem = (index: number) => {
-    setItinerary(itinerary.filter((_, i) => i !== index));
+    setItinerary((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmitTrip = async (e: React.FormEvent) => {
@@ -95,23 +96,25 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
       setMessage('Viagem e itinerário cadastrados com sucesso!');
       setTitle('');
       setDestination('');
+      setSelectedUserId('');
       setItinerary([]);
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar';
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white p-8 max-w-4xl mx-auto">
+    <div className="min-h-screen bg-[#080d1a] text-white p-6 md:p-10 max-w-4xl mx-auto">
       <div className="mb-8">
         <span className="text-xs font-extrabold text-sky-400 tracking-[2px] uppercase">
-          PAINEL DO AGENTE
+          PAINEL DO AGENTE DE VIAGEM
         </span>
         <h1 className="text-2xl font-black mt-1">Cadastro de Viagens & Itinerários</h1>
         <p className="text-xs text-slate-400 mt-1">
-          Gerencie destinos, organize cronogramas e vincule vouchers de passagens e hotéis.
+          Gerencie viagens de clientes, monte o cronograma passo a passo e anexe os vouchers.
         </p>
       </div>
 
@@ -123,9 +126,11 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
       )}
 
       <form onSubmit={handleSubmitTrip} className="space-y-6">
-        {/* Dados Principais da Viagem */}
+        {/* Bloco 1: Informações da Viagem */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h2 className="text-sm font-bold text-sky-400 uppercase tracking-wider">1. Informações da Viagem</h2>
+          <h2 className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">
+            1. Dados da Viagem & Cliente
+          </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -154,28 +159,46 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">ID do Cliente (UUID)</label>
-            <input
-              type="text"
-              required
-              placeholder="Cole o ID do cliente cadastrado"
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
-            />
+            <label className="block text-xs font-medium text-slate-300 mb-1">Cliente Vinculado</label>
+            {clients.length > 0 ? (
+              <select
+                required
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
+              >
+                <option value="">Selecione um cliente...</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name || 'Sem Nome'} ({c.email})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                required
+                placeholder="Informe o ID (UUID) do usuário cliente"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
+              />
+            )}
           </div>
         </div>
 
-        {/* Cadastro de Itinerário e Vouchers */}
+        {/* Bloco 2: Itinerário & Vouchers */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h2 className="text-sm font-bold text-sky-400 uppercase tracking-wider">2. Adicionar Itinerário & Vouchers</h2>
+          <h2 className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">
+            2. Adicionar Eventos ao Itinerário
+          </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-300 mb-1">Título da Atividade / Voo / Hotel</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Título do Evento / Voo / Reserva</label>
               <input
                 type="text"
-                placeholder="Ex: Voo JL048 / Check-in Hotel"
+                placeholder="Ex: Voo JL048 / Check-in Hotel Tokyo Central"
                 value={itemTitle}
                 onChange={(e) => setItemTitle(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
@@ -199,10 +222,10 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Local / Terminal</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Local / Aeroporto</label>
               <input
                 type="text"
-                placeholder="Ex: Terminal 3 - Guarulhos"
+                placeholder="Ex: Aeroporto de Haneda (HND)"
                 value={itemLocation}
                 onChange={(e) => setItemLocation(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
@@ -233,7 +256,7 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Link do Voucher / Documento (URL ou PDF)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Link do Voucher ou Documento PDF</label>
             <input
               type="text"
               placeholder="Ex: https://storage.modustravel.com.br/vouchers/voo-jl048.pdf"
@@ -248,26 +271,30 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
             onClick={handleAddItineraryItem}
             className="w-full bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold py-2.5 rounded-xl border border-sky-500/30 transition-all flex items-center justify-center gap-2 text-xs"
           >
-            <Plus size={16} /> Adicionar ao Itinerário
+            <Plus size={16} /> Adicionar Evento ao Itinerário
           </button>
         </div>
 
-        {/* Lista de Itinerários Adicionados */}
+        {/* Bloco 3: Lista Prevista do Itinerário */}
         {itinerary.length > 0 && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Itinerário Pronto ({itinerary.length} itens)</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Itinerário Montado ({itinerary.length} evento{itinerary.length > 1 ? 's' : ''})
+            </h3>
             <div className="space-y-2">
               {itinerary.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <div key={idx} className="flex items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800">
                   <div>
                     <span className="text-xs font-bold text-sky-400 mr-2">[{item.type.toUpperCase()}]</span>
                     <span className="text-sm font-semibold text-white">{item.title}</span>
-                    <p className="text-[11px] text-slate-400">{item.date} às {item.time} {item.location && `• ${item.location}`}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {item.date} {item.time && `às ${item.time}`} {item.location && `• ${item.location}`}
+                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveItem(idx)}
-                    className="text-red-400 hover:text-red-300 p-1"
+                    className="text-red-400 hover:text-red-300 p-1.5 transition-colors"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -277,13 +304,13 @@ export default function AdminTripsPage({ params, searchParams }: PageProps) {
           </div>
         )}
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-2">
           <button
             type="submit"
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 text-sm"
           >
-            {loading ? 'Salvando Viagem...' : 'Salvar Viagem Completa'}
+            {loading ? 'Salvando Viagem...' : 'Gravar Viagem Completa'}
           </button>
         </div>
       </form>
