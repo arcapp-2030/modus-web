@@ -55,6 +55,7 @@ export default function Sidebar({
 
   const handleLogout = async () => {
     try {
+      await fetch('/api/auth/logout', { method: 'POST' });
       authStorage.clearToken();
       localStorage.removeItem('modus_user_name');
     } catch (error) {
