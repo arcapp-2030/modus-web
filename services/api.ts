@@ -2,7 +2,7 @@ import axios from 'axios';
 import { authStorage } from '@/lib/auth-storage';
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://sua-api.com',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '',
 });
 
 // Interceptor para injetar o Token JWT em cada requisição
