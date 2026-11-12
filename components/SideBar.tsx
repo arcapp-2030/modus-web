@@ -55,12 +55,13 @@ export default function Sidebar({
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', cache: 'no-store', credentials: 'include', });
       authStorage.clearToken();
       localStorage.removeItem('modus_user_name');
     } catch (error) {
       console.error('Erro ao encerrar sessão:', error);
     } finally {
+      authStorage.clearToken();
       onClose();
       router.push('/login');
     }

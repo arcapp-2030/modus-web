@@ -10,13 +10,15 @@ export const authStorage = {
   },
   setToken: (token: string) => {
     if (typeof window === 'undefined') return;
-    // Expira em 7 dias
-    document.cookie = `modus_auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    const isProd = window.location.protocol === 'https:';
+    document.cookie = `modus_auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${isProd ? '; Secure' : ''}`;
   },
   clearToken: () => {
     if (typeof window === 'undefined') return;
-    // Expira imediatamente o cookie
+    // Remove cobrindo HTTP e HTTPS
     document.cookie = 'modus_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    document.cookie = 'modus_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure';
     localStorage.removeItem('modus_user_name');
+    sessionStorage.clear();
   },
 };

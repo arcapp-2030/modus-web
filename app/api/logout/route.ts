@@ -6,7 +6,10 @@ export async function POST() {
   // Remove o cookie HTTP diretamente no response da API
   response.cookies.set('modus_auth_token', '', {
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     expires: new Date(0),
+    maxAge: 0,
     path: '/',
   });
 
