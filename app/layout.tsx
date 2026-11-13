@@ -48,3 +48,16 @@ export default function RootLayout({
     </html>
   );
 }
+
+import { InstallPwaPrompt } from '@/components/InstallPwaPrompt';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR">
+      <body className="bg-[#080d1a] text-white">
+        {children}
+        <InstallPwaPrompt />
+      </body>
+    </html>
+  );
+}
