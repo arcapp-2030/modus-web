@@ -6,12 +6,13 @@ import "./globals.css";
 // Se você tiver o AuthProvider criado em outro lugar, ajuste o caminho relativo:
 import { AuthProvider } from "@/contexts/AuthContext"; 
 import { InstallPWA } from "@/components/InstallPWA";
+import { InstallPwaPrompt } from "@/components/InstallPwaPrompt";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Modus - Viagens",
-  description: "Aplicativo de gerenciamento de viagens PWA",
+  description: "Seu passaporte digital e roteiros de viagem",
   appleWebApp: {
     capable: true,
     title: "Modus",
@@ -42,21 +43,9 @@ export default function RootLayout({
             {children}
             {/* Banner de instrução para PWA */}
             <InstallPWA />
+                   <InstallPwaPrompt />
           </div>
         </AuthProvider>
-      </body>
-    </html>
-  );
-}
-
-import { InstallPwaPrompt } from '@/components/InstallPwaPrompt';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="pt-BR">
-      <body className="bg-[#080d1a] text-white">
-        {children}
-        <InstallPwaPrompt />
       </body>
     </html>
   );
