@@ -7,6 +7,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext"; 
 import { InstallPWA } from "@/components/InstallPWA";
 import { InstallPwaPrompt } from "@/components/InstallPwaPrompt";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={inter.className}>
       <body className="bg-gray-100 antialiased">
+        <ThemeProvider>
         <AuthProvider>
           {/* Container para simular a largura de app no desktop */}
           <div className="mx-auto min-h-screen bg-white shadow-xl flex flex-col">
@@ -46,6 +48,8 @@ export default function RootLayout({
                    <InstallPwaPrompt />
           </div>
         </AuthProvider>
+        </ThemeProvider>
+        
       </body>
     </html>
   );

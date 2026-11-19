@@ -15,6 +15,8 @@ import {
   X,
 } from 'lucide-react';
 import { authStorage } from '@/lib/auth-storage'; // Gerenciador de token/sessão web
+import { ThemeToggle } from './ThemeToggle';
+
 
 interface SidebarProps {
   isOpen: boolean;
@@ -170,6 +172,17 @@ export default function Sidebar({
               </Link>
             );
           })}
+        </div>
+
+        {/* Botão de Mudar tema */}  
+        <div className="p-4 border-t border-slate-800">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/80 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-all text-xs font-semibold"
+          >
+            <LogOut size={18} />
+            <span>Tema Claro/Escuro</span>
+          </button>
         </div>
 
         {/* Botão de Encerrar Sessão */}
