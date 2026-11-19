@@ -36,6 +36,36 @@ model User {
   status        Status         @default(ACTIVE)
   avatarUrl     String?
   
+  // Contato e Endereço
+  phone                  String?
+  zipCode                String?
+  street                 String?
+  number                 String?
+  complement             String?
+  neighborhood           String?
+  city                   String?
+  state                  String?
+  country                String?        @default("Brasil")
+
+  // Documentação Civil e Viagem
+  cpf                    String?
+  rg                     String?
+  rgIssueDate            DateTime?
+  cnh                    String?
+  cnhExpiry              DateTime?
+  passportNumber         String?
+  passportExpiry         DateTime?
+  usVisaNumber           String?
+  usVisaExpiry           DateTime?
+
+  // Arquivos / URLs de Documentos e Comprovantes
+  proofOfResidenceUrl    String?
+  cpfDocumentUrl         String?
+  rgDocumentUrl          String?
+  cnhDocumentUrl         String?
+  passportDocumentUrl    String?
+  usVisaDocumentUrl      String?
+
   // Relacionamentos
   refreshTokens RefreshToken[]
   notifications Notification[]
