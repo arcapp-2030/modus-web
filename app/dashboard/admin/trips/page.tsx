@@ -23,7 +23,7 @@ function AdminTripsForm() {
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(preselectedClientId);
-  
+
   // Lista de itinerários criados para a viagem
   const [itinerary, setItinerary] = useState<ItineraryFormItem[]>([]);
   const [itemTitle, setItemTitle] = useState('');
@@ -41,7 +41,7 @@ function AdminTripsForm() {
     if (preselectedClientId) {
       setSelectedUserId(preselectedClientId);
     }
-    
+
     async function fetchClients() {
       try {
         const res = await fetch('/api/admin/clients');
@@ -114,239 +114,264 @@ function AdminTripsForm() {
     }
   };
 
+  const inputClass =
+    'w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-sky-500 transition-colors';
+
+  const cardClass =
+    'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm dark:shadow-none transition-colors';
+
+  const labelClass =
+    'block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1';
+
+  const sectionTitleClass =
+    'text-xs font-extrabold text-sky-600 dark:text-sky-400 uppercase tracking-wider';
+
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white p-6 md:p-10 max-w-4xl mx-auto">
-      {/* Botão de Retorno condicional */}
-      <div className="mb-6 flex items-center justify-between">
-        <Link
-          href={selectedUserId ? `/dashboard/admin/clients/${selectedUserId}` : '/dashboard/admin'}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft size={16} /> {selectedUserId ? 'Voltar ao Perfil do Cliente' : 'Voltar ao Painel'}
-        </Link>
-      </div>
-
-      <div className="mb-8">
-        <span className="text-xs font-extrabold text-sky-400 tracking-[2px] uppercase">
-          PAINEL DO AGENTE DE VIAGEM
-        </span>
-        <h1 className="text-2xl font-black mt-1">Cadastro de Viagens & Itinerários</h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Monte o cronograma passo a passo e anexe os vouchers do passageiro.
-        </p>
-      </div>
-
-      {message && (
-        <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-center gap-2">
-          <CheckCircle2 size={16} />
-          {message}
-          {selectedUserId && (
-            <Link
-              href={`/dashboard/admin/clients/${selectedUserId}`}
-              className="ml-auto underline font-bold text-emerald-300"
-            >
-              Ver perfil do cliente
-            </Link>
-          )}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmitTrip} className="space-y-6">
-        {/* Bloco 1: Informações da Viagem */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h2 className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">
-            1. Dados da Viagem & Cliente
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Título da Viagem</label>
-              <input
-                type="text"
-                required
-                placeholder="Ex: Tóquio Expedition 2026"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Destino Principal</label>
-              <input
-                type="text"
-                required
-                placeholder="Ex: Tóquio, Japão"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Cliente Vinculado</label>
-            {clients.length > 0 ? (
-              <select
-                required
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
-              >
-                <option value="">Selecione um cliente...</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name || 'Sem Nome'} ({c.email})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                required
-                placeholder="Informe o ID (UUID) do usuário cliente"
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Bloco 2: Itinerário & Vouchers */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h2 className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">
-            2. Adicionar Eventos ao Itinerário
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-300 mb-1">Título do Evento / Voo / Reserva</label>
-              <input
-                type="text"
-                placeholder="Ex: Voo JL048 / Check-in Hotel Tokyo Central"
-                value={itemTitle}
-                onChange={(e) => setItemTitle(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Categoria</label>
-              <select
-                value={itemType}
-                onChange={(e) => setItemType(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
-              >
-                <option value="flight">Voo / Logística</option>
-                <option value="hotel">Hospedagem</option>
-                <option value="food">Gastronomia</option>
-                <option value="tour">Passeio / Lazer</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Local / Aeroporto</label>
-              <input
-                type="text"
-                placeholder="Ex: Aeroporto de Haneda (HND)"
-                value={itemLocation}
-                onChange={(e) => setItemLocation(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Data</label>
-              <input
-                type="date"
-                placeholder="Ex: 20 de Out, 2026"
-                value={itemDate}
-                onChange={(e) => setItemDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Horário</label>
-              <input
-                type="time"
-                placeholder="Ex: 23:15"
-                value={itemTime}
-                onChange={(e) => setItemTime(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Link do Voucher ou Documento PDF</label>
-            <input
-              type="text"
-              placeholder="Ex: https://storage.modustravel.com.br/vouchers/voo-jl048.pdf"
-              value={itemVoucher}
-              onChange={(e) => setItemVoucher(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleAddItineraryItem}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold py-2.5 rounded-xl border border-sky-500/30 transition-all flex items-center justify-center gap-2 text-xs"
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-white transition-colors">
+      <div className="p-6 md:p-10 max-w-4xl mx-auto">
+        {/* Botão de Retorno condicional */}
+        <div className="mb-6 flex items-center justify-between">
+          <Link
+            href={selectedUserId ? `/dashboard/admin/clients/${selectedUserId}` : '/dashboard/admin'}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
-            <Plus size={16} /> Adicionar Evento ao Itinerário
-          </button>
+            <ArrowLeft size={16} />{' '}
+            {selectedUserId ? 'Voltar ao Perfil do Cliente' : 'Voltar ao Painel'}
+          </Link>
         </div>
 
-        {/* Bloco 3: Lista Prevista do Itinerário */}
-        {itinerary.length > 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Itinerário Montado ({itinerary.length} evento{itinerary.length > 1 ? 's' : ''})
-            </h3>
-            <div className="space-y-2">
-              {itinerary.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                  <div>
-                    <span className="text-xs font-bold text-sky-400 mr-2">[{item.type.toUpperCase()}]</span>
-                    <span className="text-sm font-semibold text-white">{item.title}</span>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {item.date} {item.time && `às ${item.time}`} {item.location && `• ${item.location}`}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(idx)}
-                    className="text-red-400 hover:text-red-300 p-1.5 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
+        <div className="mb-8">
+          <span className="text-xs font-extrabold text-sky-600 dark:text-sky-400 tracking-[2px] uppercase">
+            PAINEL DO AGENTE DE VIAGEM
+          </span>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+            Cadastro de Viagens & Itinerários
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Monte o cronograma passo a passo e anexe os vouchers do passageiro.
+          </p>
+        </div>
+
+        {message && (
+          <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+            <CheckCircle2 size={16} className="shrink-0" />
+            <span>{message}</span>
+            {selectedUserId && (
+              <Link
+                href={`/dashboard/admin/clients/${selectedUserId}`}
+                className="ml-auto underline font-bold text-emerald-800 dark:text-emerald-300"
+              >
+                Ver perfil do cliente
+              </Link>
+            )}
           </div>
         )}
 
-        <div className="flex justify-end pt-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 text-sm"
-          >
-            {loading ? 'Salvando Viagem...' : 'Gravar Viagem Completa'}
-          </button>
-        </div>
-      </form>
+        <form onSubmit={handleSubmitTrip} className="space-y-6">
+          {/* Bloco 1: Informações da Viagem */}
+          <div className={cardClass}>
+            <h2 className={sectionTitleClass}>1. Dados da Viagem & Cliente</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Título da Viagem</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Tóquio Expedition 2026"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Destino Principal</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Tóquio, Japão"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Cliente Vinculado</label>
+              {clients.length > 0 ? (
+                <select
+                  required
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Selecione um cliente...</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name || 'Sem Nome'} ({c.email})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  placeholder="Informe o ID (UUID) do usuário cliente"
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className={inputClass}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Bloco 2: Itinerário & Vouchers */}
+          <div className={cardClass}>
+            <h2 className={sectionTitleClass}>2. Adicionar Eventos ao Itinerário</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className={labelClass}>Título do Evento / Voo / Reserva</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Voo JL048 / Check-in Hotel Tokyo Central"
+                  value={itemTitle}
+                  onChange={(e) => setItemTitle(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Categoria</label>
+                <select
+                  value={itemType}
+                  onChange={(e) => setItemType(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="flight">Voo / Logística</option>
+                  <option value="hotel">Hospedagem</option>
+                  <option value="food">Gastronomia</option>
+                  <option value="tour">Passeio / Lazer</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className={labelClass}>Local / Aeroporto</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Aeroporto de Haneda (HND)"
+                  value={itemLocation}
+                  onChange={(e) => setItemLocation(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Data</label>
+                <input
+                  type="date"
+                  value={itemDate}
+                  onChange={(e) => setItemDate(e.target.value)}
+                  className={`${inputClass} dark:[color-scheme:dark]`}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Horário</label>
+                <input
+                  type="time"
+                  value={itemTime}
+                  onChange={(e) => setItemTime(e.target.value)}
+                  className={`${inputClass} dark:[color-scheme:dark]`}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Link do Voucher ou Documento PDF</label>
+              <input
+                type="text"
+                placeholder="Ex: https://storage.modustravel.com.br/vouchers/voo-jl048.pdf"
+                value={itemVoucher}
+                onChange={(e) => setItemVoucher(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddItineraryItem}
+              className="w-full bg-sky-500/10 hover:bg-sky-500/15 dark:bg-slate-800 dark:hover:bg-slate-700 text-sky-700 dark:text-sky-400 font-semibold py-2.5 rounded-xl border border-sky-500/30 transition-all flex items-center justify-center gap-2 text-xs"
+            >
+              <Plus size={16} /> Adicionar Evento ao Itinerário
+            </button>
+          </div>
+
+          {/* Bloco 3: Lista Prevista do Itinerário */}
+          {itinerary.length > 0 && (
+            <div className={cardClass}>
+              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Itinerário Montado ({itinerary.length} evento{itinerary.length > 1 ? 's' : ''})
+              </h3>
+              <div className="space-y-2">
+                {itinerary.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors"
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-sky-600 dark:text-sky-400 mr-2">
+                        [{item.type.toUpperCase()}]
+                      </span>
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {item.title}
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {item.date} {item.time && `às ${item.time}`}{' '}
+                        {item.location && `• ${item.location}`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(idx)}
+                      className="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 p-1.5 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 text-sm"
+            >
+              {loading ? 'Salvando Viagem...' : 'Gravar Viagem Completa'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
 export default function AdminTripsPage() {
   return (
-    <Suspense fallback={<div className="text-xs text-slate-400 p-10 text-center">Carregando formulário...</div>}>
+    <Suspense
+      fallback={
+        <div className="text-xs text-slate-500 dark:text-slate-400 p-10 text-center">
+          Carregando formulário...
+        </div>
+      }
+    >
       <AdminTripsForm />
     </Suspense>
   );

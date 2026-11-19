@@ -14,9 +14,8 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { authStorage } from '@/lib/auth-storage'; // Gerenciador de token/sessão web
+import { authStorage } from '@/lib/auth-storage';
 import { ThemeToggle } from './ThemeToggle';
-
 
 interface SidebarProps {
   isOpen: boolean;
@@ -33,16 +32,13 @@ export default function Sidebar({
   const router = useRouter();
   const [userName, setUserName] = useState('Usuário');
 
-  // Busca o nome do usuário armazenado ou via API se necessário
   useEffect(() => {
-    // Exemplo simulado ou buscando do localStorage/estado global
     const storedUser = localStorage.getItem('modus_user_name');
     if (storedUser) {
       setUserName(storedUser);
     }
   }, []);
 
-  // Gera as iniciais automaticamente com base no nome (ex: "Arquimedes Luciano" -> "AL")
   const getInitials = (name: string) => {
     const cleanName = name.trim();
     if (!cleanName) return 'US';
@@ -57,7 +53,11 @@ export default function Sidebar({
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST', cache: 'no-store', credentials: 'include', });
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        cache: 'no-store',
+        credentials: 'include',
+      });
       authStorage.clearToken();
       localStorage.removeItem('modus_user_name');
     } catch (error) {
@@ -65,68 +65,53 @@ export default function Sidebar({
     } finally {
       authStorage.clearToken();
       onClose();
-      router.push('/login');
+      window.location.replace('/login');
     }
   };
 
   const menuItems = [
     { id: 'index', label: 'Início', icon: Home, path: '/dashboard' },
-    { id: 'admin-trips', label: 'Painel do Agente', icon: Compass, path: '/dashboard/admin/trips' }, // Atalho do Agente
+    { id: 'admin', label: 'Painel do Agente', icon: Compass, path: '/dashboard/admin' },
     { id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard/orbis' },
-    {
-      id: 'busca',
-      label: 'Explorar Destinos',
-      icon: Compass,
-      path: '/dashboard/busca',
-    },
-    {
-      id: 'assistente',
-      label: 'Assistente de Viagem',
-      icon: Bot,
-      path: '/dashboard/assistente',
-    },
+    { id: 'busca', label: 'Explorar Destinos', icon: Compass, path: '/dashboard/busca' },
+    { id: 'assistente', label: 'Assistente de Viagem', icon: Bot, path: '/dashboard/assistente' },
     { id: 'profile', label: 'Meu Perfil', icon: User, path: '/dashboard/profile' },
-    {
-      id: 'settings',
-      label: 'Configurações',
-      icon: Settings,
-      path: '/dashboard/settings',
-    },
+    { id: 'settings', label: 'Configurações', icon: Settings, path: '/dashboard/settings' },
   ];
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop Escuro */}
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-[#030712]/75 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-950/60 dark:bg-[#030712]/75 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Painel da Sidebar */}
-      <div className="relative w-80 max-w-[85vw] h-full bg-[#070c18] border-r border-sky-500/40 shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
-        
+      <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-[#070c18] text-slate-900 dark:text-white border-r border-slate-200 dark:border-sky-500/40 shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200 transition-colors">
         {/* Header da Sidebar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <span className="text-xs font-extrabold text-sky-400 tracking-[1.5px] uppercase">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+          <span className="text-xs font-extrabold text-sky-600 dark:text-sky-400 tracking-[1.5px] uppercase">
             MODUS
           </span>
 
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-900/90 border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-all text-slate-400 hover:text-white"
+            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Perfil Dinâmico */}
-        <div className="p-4 border-b border-slate-800/60">
+        <div className="p-4 border-b border-slate-200/80 dark:border-slate-800/60">
           <Link
             href="/dashboard/settings"
             onClick={onClose}
-            className="flex items-center gap-3 bg-slate-900/80 rounded-xl p-3 border border-sky-500/20 hover:border-sky-500/40 transition-all group"
+            className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/80 rounded-xl p-3 border border-slate-200 dark:border-sky-500/20 hover:border-sky-500/40 transition-all group"
           >
             <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
               <span className="text-xs font-extrabold text-white">
@@ -135,15 +120,15 @@ export default function Sidebar({
             </div>
 
             <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-bold text-white truncate group-hover:text-sky-400 transition-colors">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                 {userName}
               </h4>
-              <p className="text-[10px] font-medium text-slate-400">
+              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
                 Membro Explorer
               </p>
             </div>
 
-            <ChevronRight size={16} className="text-slate-500 shrink-0" />
+            <ChevronRight size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
           </Link>
         </div>
 
@@ -160,13 +145,13 @@ export default function Sidebar({
                 onClick={onClose}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-sky-500/12 border border-sky-500/30 text-white font-bold'
-                    : 'text-slate-300 hover:bg-slate-900/60 hover:text-white'
+                    ? 'bg-sky-500/15 border border-sky-500/30 text-sky-700 dark:text-white font-bold'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/60 hover:text-slate-950 dark:hover:text-white'
                 }`}
               >
                 <Icon
                   size={18}
-                  className={isActive ? 'text-sky-400' : 'text-slate-400'}
+                  className={isActive ? 'text-sky-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400'}
                 />
                 <span className="flex-1">{item.label}</span>
               </Link>
@@ -174,22 +159,17 @@ export default function Sidebar({
           })}
         </div>
 
-        {/* Botão de Mudar tema */}  
-        <div className="p-4 border-t border-slate-800">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/80 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-all text-xs font-semibold"
-          >
-            <LogOut size={18} />
-            <span>Tema Claro/Escuro</span>
-          </button>
+        {/* Seletor de Tema Claro/Escuro */}
+        <div className="px-4 pt-3 pb-2 border-t border-slate-200 dark:border-slate-800">
+          <ThemeToggle />
         </div>
 
         {/* Botão de Encerrar Sessão */}
-        <div className="p-4 border-t border-slate-800">
+        <div className="px-4 pb-4 pt-2">
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/80 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-all text-xs font-semibold"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-all text-xs font-semibold"
           >
             <LogOut size={18} />
             <span>Encerrar Sessão</span>
