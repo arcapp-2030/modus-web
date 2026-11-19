@@ -64,6 +64,7 @@ export default function Sidebar({
       console.error('Erro ao encerrar sessão:', error);
     } finally {
       authStorage.clearToken();
+      localStorage.removeItem('modus_user_name');
       onClose();
       window.location.replace('/login');
     }
