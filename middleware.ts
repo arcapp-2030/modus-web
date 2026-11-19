@@ -1,22 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const isPublicAsset =
-  pathname === '/manifest.webmanifest' ||
-  pathname === '/sw.js' ||
-  pathname.startsWith('/icons/') ||
-  pathname.startsWith('/_next');
-  
-  if (isPublicAsset) {
-    return NextResponse.next();
-  }
-
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('modus_auth_token')?.value;
   const { pathname } = request.nextUrl;
 
   // Defina as rotas públicas que não exigem login (incluindo a raiz '/')
   const isPublicRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
+
+  const isPublicAsset = pathname === '/manifest.webmanifest' ||  pathname === '/sw.js' ||  pathname.startsWith('/icons/') ||  pathname.startsWith('/_next');
+  
+  if (isPublicAsset) {
+    return NextResponse.next();
+  }
 
   // 1. Se tentar acessar uma rota privada sem token -> Redireciona para /login
   if (!token && !isPublicRoute) {
