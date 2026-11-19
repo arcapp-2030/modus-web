@@ -5,7 +5,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 // Se você tiver o AuthProvider criado em outro lugar, ajuste o caminho relativo:
 import { AuthProvider } from "@/contexts/AuthContext"; 
-import { InstallPWA } from "@/components/InstallPWA";
 import { InstallPwaPrompt } from "@/components/InstallPwaPrompt";
 import { ThemeProvider } from "@/components/ThemeProvider";
 

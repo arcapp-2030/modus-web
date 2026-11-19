@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const isPublicAsset =
+  pathname === '/manifest.webmanifest' ||
+  pathname === '/sw.js' ||
+  pathname.startsWith('/icons/') ||
+  pathname.startsWith('/_next');
+  
+  if (isPublicAsset) {
+    return NextResponse.next();
+  }
+
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('modus_auth_token')?.value;
   const { pathname } = request.nextUrl;
