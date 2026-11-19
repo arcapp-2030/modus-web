@@ -43,7 +43,6 @@ export default function RootLayout({
           <div className="mx-auto min-h-screen bg-white shadow-xl flex flex-col">
             {children}
             {/* Banner de instrução para PWA */}
-            <InstallPWA />
                    <InstallPwaPrompt />
           </div>
         </AuthProvider>
