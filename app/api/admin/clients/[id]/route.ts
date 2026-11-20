@@ -10,37 +10,39 @@ export async function GET(
 
     // Busca o cliente pelo ID e inclui todas as suas viagens e itinerários relacionados
     const client = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        trips: {
-          select: {
-            id: true,
-            title: true,
-            destination: true,
-            startDate: true,
-            endDate: true,
-            createdAt: true,
-            itinerary: {
-              select: {
-                id: true,
-                title: true,
-                subtitle: true,
-                type: true,
-                location: true,
-                date: true,
-                time: true,
-                voucherFile: true,
+  where: { id },
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    phone: true,
+    city: true,
+    state: true,
+    inviteCode: true,
+    status: true,
+    createdAt: true,
+    individualTrips: {
+      orderBy: { createdAt: 'desc' },
+      include: {
+        itinerary: true,
+      },
+    },
+    groupMemberships: {
+      include: {
+        group: {
+          include: {
+            trips: {
+              orderBy: { createdAt: 'desc' },
+              include: {
+                itinerary: true,
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
         },
       },
-    });
+    },
+  },
+});
 
     if (!client) {
       return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 });
