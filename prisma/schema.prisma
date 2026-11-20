@@ -27,55 +27,121 @@ enum Status {
 // --------------------------------------------------------
 
 model User {
-  id            String         @id @default(uuid())
-  name          String
-  email         String         @unique
-  passwordHash  String
-  role          Role           @default(USER)
-  trips         Trip[]
-  status        Status         @default(ACTIVE)
-  avatarUrl     String?
-  
+  id                  String          @id @default(uuid())
+  name                String
+  email               String          @unique
+  passwordHash        String
+  role                Role            @default(USER)
+  inviteCode          String          @unique @default(uuid())
+  status              Status          @default(ACTIVE)
+  avatarUrl           String?
+
   // Contato e Endereço
-  phone                  String?
-  zipCode                String?
-  street                 String?
-  number                 String?
-  complement             String?
-  neighborhood           String?
-  city                   String?
-  state                  String?
-  country                String?        @default("Brasil")
+  phone               String?
+  zipCode             String?
+  street              String?
+  number              String?
+  complement          String?
+  neighborhood        String?
+  city                String?
+  state               String?
+  country             String?         @default("Brasil")
 
   // Documentação Civil e Viagem
-  cpf                    String?
-  rg                     String?
-  rgIssueDate            DateTime?
-  cnh                    String?
-  cnhExpiry              DateTime?
-  passportNumber         String?
-  passportExpiry         DateTime?
-  usVisaNumber           String?
-  usVisaExpiry           DateTime?
+  cpf                 String?
+  rg                  String?
+  rgIssueDate         DateTime?
+  cnh                 String?
+  cnhExpiry           DateTime?
+  passportNumber      String?
+  passportExpiry      DateTime?
+  usVisaNumber        String?
+  usVisaExpiry        DateTime?
 
   // Arquivos / URLs de Documentos e Comprovantes
-  proofOfResidenceUrl    String?
-  cpfDocumentUrl         String?
-  rgDocumentUrl          String?
-  cnhDocumentUrl         String?
-  passportDocumentUrl    String?
-  usVisaDocumentUrl      String?
+  proofOfResidenceUrl String?
+  cpfDocumentUrl      String?
+  rgDocumentUrl       String?
+  cnhDocumentUrl      String?
+  passportDocumentUrl String?
+  usVisaDocumentUrl   String?
 
-  // Relacionamentos
-  refreshTokens RefreshToken[]
-  notifications Notification[]
-  logs          AuditLog[]
+  // Carteira do Agente (Client <-> Manager)
+  managedClients      ClientManager[] @relation("ManagerRelations")
+  assignedManagers    ClientManager[] @relation("ClientRelations")
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  // Grupos e Viagens
+  managedGroups       TravelGroup[]   @relation("GroupManager")
+  groupMemberships    GroupMember[]
+  managedTrips        Trip[]          @relation("TripManager")
+  individualTrips     Trip[]          @relation("TripClient")
+  personalVouchers    PersonalVoucher[]
+
+  // Sistema
+  refreshTokens       RefreshToken[]
+  notifications       Notification[]
+  logs                AuditLog[]
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   @@map("users")
 }
+
+// --------------------------------------------------------
+// GESTÃO DE CARTEIRA (MANAGER <-> USER)
+// --------------------------------------------------------
+
+model ClientManager {
+  id        String   @id @default(uuid())
+  managerId String
+  clientId  String
+  manager   User     @relation("ManagerRelations", fields: [managerId], references: [id], onDelete: Cascade)
+  client    User     @relation("ClientRelations", fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([managerId, clientId])
+  @@index([managerId])
+  @@index([clientId])
+  @@map("client_managers")
+}
+
+// --------------------------------------------------------
+// GRUPOS DE VIAGEM (EXCURSÕES, FAMÍLIAS, CORPORATIVO)
+// --------------------------------------------------------
+
+model TravelGroup {
+  id          String        @id @default(uuid())
+  name        String        // Ex: "Grupo Disney Outubro 2026"
+  description String?
+  managerId   String
+  manager     User          @relation("GroupManager", fields: [managerId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  trips       Trip[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([managerId])
+  @@map("travel_groups")
+}
+
+model GroupMember {
+  id        String      @id @default(uuid())
+  groupId   String
+  userId    String
+  group     TravelGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime    @default(now())
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+// --------------------------------------------------------
+// VIAGENS E ITINERÁRIOS
+// --------------------------------------------------------
 
 model Trip {
   id          String          @id @default(uuid())
@@ -83,26 +149,62 @@ model Trip {
   destination String
   startDate   DateTime?
   endDate     DateTime?
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Quem gerencia esta viagem
+  managerId   String
+  manager     User            @relation("TripManager", fields: [managerId], references: [id], onDelete: Cascade)
+
+  // Pode pertencer a um cliente individual OU a um grupo inteiro
+  userId      String?
+  user        User?           @relation("TripClient", fields: [userId], references: [id], onDelete: Cascade)
+  groupId     String?
+  group       TravelGroup?    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
   itinerary   ItineraryItem[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+
+  @@index([managerId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("trips")
 }
 
 model ItineraryItem {
-  id          String   @id @default(uuid())
-  tripId      String
-  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  title       String   // Ex: "Voo JL048 para Haneda"
-  subtitle    String?  // Ex: "Embarque no terminal 3"
-  type        String   // "flight", "hotel", "food", "tour"
-  location    String?
-  date        String?
-  time        String?
-  voucherFile String?  // URL ou caminho do arquivo/voucher armazenado
-  createdAt   DateTime @default(now())
+  id               String            @id @default(uuid())
+  tripId           String
+  trip             Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  title            String            // Ex: "Voo JL048 para Haneda"
+  subtitle         String?           // Ex: "Embarque no terminal 3"
+  type             String            // "flight", "hotel", "food", "tour"
+  location         String?
+  date             String?
+  time             String?
+  voucherFile      String?           // Voucher coletivo (ex: reserva de hotel do grupo)
+  personalVouchers PersonalVoucher[] // Vouchers individuais (ex: bilhete aéreo de cada passageiro)
+  createdAt        DateTime          @default(now())
+
+  @@index([tripId])
+  @@map("itinerary_items")
 }
+
+model PersonalVoucher {
+  id              String        @id @default(uuid())
+  itineraryItemId String
+  userId          String
+  fileUrl         String
+  notes           String?       // Ex: "Assento 14A - Localizador XYZ123"
+  itineraryItem   ItineraryItem @relation(fields: [itineraryItemId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([itineraryItemId, userId])
+  @@map("personal_vouchers")
+}
+
+// --------------------------------------------------------
+// SISTEMA E AUDITORIA
+// --------------------------------------------------------
 
 model RefreshToken {
   id        String   @id @default(uuid())
@@ -114,10 +216,6 @@ model RefreshToken {
 
   @@map("refresh_tokens")
 }
-
-// --------------------------------------------------------
-// SISTEMA DE NOTIFICAÇÕES (PWA / Push)
-// --------------------------------------------------------
 
 model Notification {
   id        String   @id @default(uuid())
@@ -131,15 +229,11 @@ model Notification {
   @@map("notifications")
 }
 
-// --------------------------------------------------------
-// LOGS DE AUDITORIA E ATIVIDADE
-// --------------------------------------------------------
-
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action    String   // ex: "USER_LOGIN", "UPDATE_SETTINGS"
+  action    String
   details   Json?
   ipAddress String?
   createdAt DateTime @default(now())
