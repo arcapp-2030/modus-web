@@ -40,14 +40,21 @@ export async function POST(request: Request) {
 
     // Gera o Token JWT válido por 7 dias
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     // Cria a resposta e define o cookie 'modus_auth_token'
     const response = NextResponse.json(
-      { message: 'Login realizado com sucesso!' },
+      { message: 'Login realizado com sucesso!',
+        user: { 
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+       },
       { status: 200 }
     );
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Bot,
@@ -29,15 +28,38 @@ export default function Sidebar({
   onClose,
   activeRoute = 'index',
 }: SidebarProps) {
-  const router = useRouter();
   const [userName, setUserName] = useState('Usuário');
+  const [userRole, setUserRole] = useState<string>('USER');
 
   useEffect(() => {
     const storedUser = localStorage.getItem('modus_user_name');
     if (storedUser) {
       setUserName(storedUser);
     }
-  }, []);
+
+    const storedRole = localStorage.getItem('modus_user_role');
+    if (storedRole) {
+      setUserRole(storedRole);
+    }
+
+    // Sincroniza nome e role do banco caso a rota de perfil já esteja ativa
+    fetch('/api/user/profile', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (data.name) {
+          setUserName(data.name);
+          localStorage.setItem('modus_user_name', data.name);
+        }
+        if (data.role) {
+          setUserRole(data.role);
+          localStorage.setItem('modus_user_role', data.role);
+        }
+      })
+      .catch(() => {
+        // Mantém os valores locais se a rota ainda não estiver disponível
+      });
+  }, [isOpen]);
 
   const getInitials = (name: string) => {
     const cleanName = name.trim();
@@ -58,13 +80,12 @@ export default function Sidebar({
         cache: 'no-store',
         credentials: 'include',
       });
-      authStorage.clearToken();
-      localStorage.removeItem('modus_user_name');
     } catch (error) {
       console.error('Erro ao encerrar sessão:', error);
     } finally {
       authStorage.clearToken();
       localStorage.removeItem('modus_user_name');
+      localStorage.removeItem('modus_user_role');
       onClose();
       window.location.replace('/login');
     }
@@ -72,10 +93,14 @@ export default function Sidebar({
 
   const menuItems = [
     { id: 'index', label: 'Início', icon: Home, path: '/dashboard' },
-    { id: 'admin', label: 'Painel do Agente', icon: Compass, path: '/dashboard/admin' },
+    ...(userRole === 'MANAGER'
+      ? [{ id: 'admin', label: 'Painel do Agente', icon: Compass, path: '/dashboard/admin' }]
+      : []),
     { id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard/orbis' },
     { id: 'busca', label: 'Explorar Destinos', icon: Compass, path: '/dashboard/busca' },
     { id: 'assistente', label: 'Assistente de Viagem', icon: Bot, path: '/dashboard/assistente' },
+    { id: 'profile', label: 'Meu Perfil', icon: User, path: '/dashboard/profile' },
+    { id: 'settings', label: 'Configurações', icon: Settings, path: '/dashboard/settings' },
   ];
 
   if (!isOpen) return null;
@@ -123,7 +148,7 @@ export default function Sidebar({
                 {userName}
               </h4>
               <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                Membro Explorer
+                {userRole === 'MANAGER' ? 'Agente / Manager' : 'Membro Explorer'}
               </p>
             </div>
 
