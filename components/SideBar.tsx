@@ -76,8 +76,6 @@ export default function Sidebar({
     { id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard/orbis' },
     { id: 'busca', label: 'Explorar Destinos', icon: Compass, path: '/dashboard/busca' },
     { id: 'assistente', label: 'Assistente de Viagem', icon: Bot, path: '/dashboard/assistente' },
-    { id: 'profile', label: 'Meu Perfil', icon: User, path: '/dashboard/profile' },
-    { id: 'settings', label: 'Configurações', icon: Settings, path: '/dashboard/settings' },
   ];
 
   if (!isOpen) return null;
