@@ -76,6 +76,25 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
 
+        {/* Dentro do cabeçalho do Painel do Agente */}
+        <div className="flex flex-wrap items-center gap-2.5">
+  <Link
+    href="/dashboard/admin/groups"
+    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors"
+  >
+    <Users size={16} className="text-sky-600 dark:text-sky-400" />
+    <span>Grupos de Viagem</span>
+  </Link>
+
+  <Link
+    href="/dashboard/admin/clients/new"
+    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/20 transition-all"
+  >
+    <UserPlus size={16} />
+    <span>Novo Cliente</span>
+  </Link>
+</div>
+
           {/* Métrica Rápida: Total de Clientes */}
           <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-sm dark:shadow-none transition-colors">
             <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
