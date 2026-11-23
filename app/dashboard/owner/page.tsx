@@ -14,7 +14,7 @@ import {
   Users,
   MapPin,
 } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar from '@/components/SideBar';
 
 interface ManagerSummary {
   id: string;

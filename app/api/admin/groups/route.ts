@@ -133,7 +133,7 @@ export async function POST(request: Request) {
     const inviteCodes: string[] = Array.isArray(body.inviteCodes)
       ? body.inviteCodes
           .filter((code: unknown): code is string => typeof code === 'string')
-          .map((code) => code.trim())
+          .map((code: string) => code.trim())
           .filter(Boolean)
       : [];
 
