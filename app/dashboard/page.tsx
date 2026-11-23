@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  BarChart, Briefcase,
+  BarChart3, Briefcase,
   Calendar,
   Clock,
   Compass,
@@ -12,7 +12,7 @@ import {
   Menu,
   Plane,
   Sparkles,
-  RefreshCw,
+  RefreshCw, Users, UserPlus,
 } from 'lucide-react';
 import Sidebar from '@/components/SideBar';
 import { api } from '@/services/api';
