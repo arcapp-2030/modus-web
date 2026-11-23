@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Bot,
+  Briefcase,
+  Building2,
   ChevronRight,
   Compass,
   Home,
@@ -15,6 +17,8 @@ import {
 } from 'lucide-react';
 import { authStorage } from '@/lib/auth-storage';
 import { ThemeToggle } from './ThemeToggle';
+
+type UserRole = 'USER' | 'MANAGER' | 'ADMIN';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,7 +33,7 @@ export default function Sidebar({
   activeRoute = 'index',
 }: SidebarProps) {
   const [userName, setUserName] = useState('Usuário');
-  const [userRole, setUserRole] = useState<string>('USER');
+  const [userRole, setUserRole] = useState<UserRole>('USER');
 
   useEffect(() => {
     const storedUser = localStorage.getItem('modus_user_name');
@@ -37,12 +41,11 @@ export default function Sidebar({
       setUserName(storedUser);
     }
 
-    const storedRole = localStorage.getItem('modus_user_role');
-    if (storedRole) {
+    const storedRole = localStorage.getItem('modus_user_role') as UserRole | null;
+    if (storedRole && ['USER', 'MANAGER', 'ADMIN'].includes(storedRole)) {
       setUserRole(storedRole);
     }
 
-    // Sincroniza nome e role do banco caso a rota de perfil já esteja ativa
     fetch('/api/user/profile', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -51,13 +54,13 @@ export default function Sidebar({
           setUserName(data.name);
           localStorage.setItem('modus_user_name', data.name);
         }
-        if (data.role) {
+        if (data.role && ['USER', 'MANAGER', 'ADMIN'].includes(data.role)) {
           setUserRole(data.role);
           localStorage.setItem('modus_user_role', data.role);
         }
       })
       .catch(() => {
-        // Mantém os valores locais se a rota ainda não estiver disponível
+        // Mantém os valores locais se a rota falhar ou estiver offline
       });
   }, [isOpen]);
 
@@ -69,6 +72,17 @@ export default function Sidebar({
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
     return cleanName.substring(0, 2).toUpperCase();
+  };
+
+  const getRoleLabel = (role: UserRole) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'Proprietário da Agência';
+      case 'MANAGER':
+        return 'Agente de Viagem';
+      default:
+        return 'Cliente Explorer';
+    }
   };
 
   const userInitials = getInitials(userName);
@@ -91,12 +105,41 @@ export default function Sidebar({
     }
   };
 
+  const isStaff = userRole === 'MANAGER' || userRole === 'ADMIN';
+  const isAdmin = userRole === 'ADMIN';
+
   const menuItems = [
     { id: 'index', label: 'Início', icon: Home, path: '/dashboard' },
-    ...(userRole === 'MANAGER'
-      ? [{ id: 'admin', label: 'Painel do Agente', icon: Compass, path: '/dashboard/admin' }]
+
+    // Exclusivo para Proprietário da Agência (ADMIN)
+    ...(isAdmin
+      ? [
+          {
+            id: 'owner',
+            label: 'Gestão da Agência',
+            icon: Building2,
+            path: '/dashboard/owner',
+          },
+        ]
       : []),
-    { id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard/orbis' },
+
+    // Disponível para Agentes (MANAGER) e Proprietário (ADMIN)
+    ...(isStaff
+      ? [
+          {
+            id: 'admin',
+            label: 'Painel do Agente',
+            icon: Briefcase,
+            path: '/dashboard/admin',
+          },
+        ]
+      : []),
+
+    // Jornada do passageiro (USER)
+    ...(userRole === 'USER'
+      ? [{ id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard/orbis' }]
+      : []),
+
     { id: 'busca', label: 'Explorar Destinos', icon: Compass, path: '/dashboard/busca' },
     { id: 'assistente', label: 'Assistente de Viagem', icon: Bot, path: '/dashboard/assistente' },
     { id: 'profile', label: 'Meu Perfil', icon: User, path: '/dashboard/profile' },
@@ -148,7 +191,7 @@ export default function Sidebar({
                 {userName}
               </h4>
               <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                {userRole === 'MANAGER' ? 'Agente / Manager' : 'Membro Explorer'}
+                {getRoleLabel(userRole)}
               </p>
             </div>
 
@@ -175,7 +218,11 @@ export default function Sidebar({
               >
                 <Icon
                   size={18}
-                  className={isActive ? 'text-sky-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400'}
+                  className={
+                    isActive
+                      ? 'text-sky-600 dark:text-sky-400'
+                      : 'text-slate-500 dark:text-slate-400'
+                  }
                 />
                 <span className="flex-1">{item.label}</span>
               </Link>
