@@ -14,7 +14,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar from '@/components/SideBar';
 
 interface ClientOption {
   id: string;
