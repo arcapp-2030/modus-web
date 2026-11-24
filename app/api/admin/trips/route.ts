@@ -11,37 +11,78 @@ interface TokenPayload {
   id?: string;
 }
 
-async function getManagerFromCookie() {
+async function getAuthenticatedStaff() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
-    const managerId = decoded.userId || decoded.id;
-    if (!managerId) return null;
+    const staffId = decoded.userId || decoded.id;
+    if (!staffId) return null;
 
     const user = await prisma.user.findUnique({
-      where: { id: managerId },
+      where: { id: staffId },
       select: { id: true, role: true, status: true },
     });
 
-    if (!user || user.status !== 'ACTIVE' || user.role !== 'MANAGER') {
+    if (
+      !user ||
+      user.status !== 'ACTIVE' ||
+      (user.role !== 'MANAGER' && user.role !== 'ADMIN')
+    ) {
       return null;
     }
 
-    return user.id;
+    return user;
   } catch {
     return null;
   }
 }
 
+export async function GET() {
+  try {
+    const staff = await getAuthenticatedStaff();
+    if (!staff) {
+      return NextResponse.json(
+        { error: 'Acesso restrito a usuários MANAGER ou ADMIN autenticados.' },
+        { status: 403 }
+      );
+    }
+
+    const trips = await prisma.trip.findMany({
+      where: staff.role === 'ADMIN' ? {} : { managerId: staff.id },
+      orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        manager: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true } },
+        group: {
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { members: true } },
+          },
+        },
+        itinerary: true,
+      },
+    });
+
+    return NextResponse.json(trips, { status: 200 });
+  } catch (error) {
+    console.error('Erro em GET /api/admin/trips:', error);
+    return NextResponse.json(
+      { error: 'Erro interno ao listar viagens.' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const managerId = await getManagerFromCookie();
-    if (!managerId) {
+    const staff = await getAuthenticatedStaff();
+    if (!staff) {
       return NextResponse.json(
-        { error: 'Acesso restrito a usuários MANAGER autenticados.' },
+        { error: 'Acesso restrito a usuários MANAGER ou ADMIN autenticados.' },
         { status: 403 }
       );
     }
@@ -63,13 +104,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Se for viagem individual, garante que o cliente pertence à carteira do MANAGER
-    if (userId) {
+    // MANAGER só cria viagem individual para clientes da sua carteira;
+    // ADMIN pode criar para qualquer cliente da agência.
+    if (userId && staff.role === 'MANAGER') {
       const link = await prisma.clientManager.findUnique({
         where: {
           managerId_clientId: {
-            managerId,
-            clientId: userId,
+            managerId: staff.id,
+            clientId: String(userId),
           },
         },
       });
@@ -81,6 +123,13 @@ export async function POST(request: Request) {
         );
       }
     }
+
+    const targetManagerId =
+      staff.role === 'ADMIN' &&
+      typeof body.managerId === 'string' &&
+      body.managerId.trim()
+        ? body.managerId.trim()
+        : staff.id;
 
     const itineraryItems = Array.isArray(itinerary)
       ? itinerary.map((item: Record<string, unknown>) => ({
@@ -100,7 +149,7 @@ export async function POST(request: Request) {
         destination: String(destination).trim(),
         startDate: startDate ? new Date(String(startDate)) : null,
         endDate: endDate ? new Date(String(endDate)) : null,
-        managerId,
+        managerId: targetManagerId,
         userId: userId ? String(userId) : null,
         groupId: groupId ? String(groupId) : null,
         itinerary: {

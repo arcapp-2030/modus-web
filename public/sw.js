@@ -7,7 +7,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass-through simples exigido pelo Chrome para critérios de PWA
   if (event.request.method !== 'GET') return;
-  event.respondWith(fetch(event.request));
+
+  const url = new URL(event.request.url);
+
+  // Não intercepta rotas de API, RSC do Next.js nem domínios externos
+  if (
+    url.origin !== self.location.origin ||
+    url.pathname.startsWith('/api/') ||
+    url.searchParams.has('_rsc')
+  ) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request).catch(() => Response.error())
+  );
 });

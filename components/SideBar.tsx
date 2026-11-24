@@ -3,16 +3,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  Bot,
+  BarChart3,
   Briefcase,
   Building2,
   ChevronRight,
-  Compass,
   Home,
   LogOut,
-  Map,
+  Plane,
   Settings,
-  User,
+  Users,
   X,
 } from 'lucide-react';
 import { authStorage } from '@/lib/auth-storage';
@@ -46,7 +45,7 @@ export default function Sidebar({
       setUserRole(storedRole);
     }
 
-    fetch('/api/user/profile', { cache: 'no-store' })
+    fetch('/api/user/profile', { cache: 'no-store', credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!data) return;
@@ -120,6 +119,24 @@ export default function Sidebar({
             icon: Building2,
             path: '/dashboard/owner',
           },
+          {
+            id: 'owner-clients',
+            label: 'Todos os Clientes',
+            icon: Users,
+            path: '/dashboard/owner/clients',
+          },
+          {
+            id: 'owner-trips',
+            label: 'Todas as Viagens',
+            icon: Plane,
+            path: '/dashboard/owner/trips',
+          },
+          {
+            id: 'owner-analytics',
+            label: 'Gráficos da Agência',
+            icon: BarChart3,
+            path: '/dashboard/owner/analytics',
+          },
         ]
       : []),
 
@@ -132,18 +149,16 @@ export default function Sidebar({
             icon: Briefcase,
             path: '/dashboard/admin',
           },
+          {
+            id: 'admin-groups',
+            label: 'Grupos de Viagem',
+            icon: Users,
+            path: '/dashboard/admin/groups',
+          },
         ]
       : []),
 
-    // Jornada do passageiro (USER)
-    ...(userRole === 'USER'
-      ? [{ id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard/orbis' }]
-      : []),
-
-    { id: 'busca', label: 'Explorar Destinos', icon: Compass, path: '/dashboard/busca' },
-    { id: 'assistente', label: 'Assistente de Viagem', icon: Bot, path: '/dashboard/assistente' },
-    { id: 'profile', label: 'Meu Perfil', icon: User, path: '/dashboard/profile' },
-    { id: 'settings', label: 'Configurações', icon: Settings, path: '/dashboard/settings' },
+    { id: 'settings', label: 'Perfil & Configurações', icon: Settings, path: '/dashboard/settings' },
   ];
 
   if (!isOpen) return null;
@@ -160,9 +175,14 @@ export default function Sidebar({
       <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-[#070c18] text-slate-900 dark:text-white border-r border-slate-200 dark:border-sky-500/40 shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200 transition-colors">
         {/* Header da Sidebar */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
-          <span className="text-xs font-extrabold text-sky-600 dark:text-sky-400 tracking-[1.5px] uppercase">
-            MODUS
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xs font-extrabold text-sky-600 dark:text-sky-400 tracking-[1.5px] uppercase">
+              MODUS
+            </span>
+            <span className="mt-1 inline-flex w-fit px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+              {userRole}
+            </span>
+          </div>
 
           <button
             type="button"

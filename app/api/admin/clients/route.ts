@@ -14,7 +14,7 @@ interface TokenPayload {
   role?: string;
 }
 
-async function getAuthenticatedManager() {
+async function getAuthenticatedStaff() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
@@ -49,30 +49,69 @@ async function getAuthenticatedManager() {
     return { error: 'Usuário não encontrado ou inativo.', status: 401 as const };
   }
 
-  if (currentUser.role !== 'MANAGER') {
+  if (currentUser.role !== 'MANAGER' && currentUser.role !== 'ADMIN') {
     return {
-      error: 'Acesso restrito a usuários com perfil MANAGER.',
+      error: 'Acesso restrito a usuários com perfil MANAGER ou ADMIN.',
       status: 403 as const,
     };
   }
 
-  return { manager: currentUser, status: 200 as const };
+  return { user: currentUser, status: 200 as const };
 }
 
 // --------------------------------------------------------
 // GET /api/admin/clients
-// Retorna apenas os clientes vinculados ao MANAGER logado
+// MANAGER vê sua carteira; ADMIN vê todos os clientes (USER)
 // --------------------------------------------------------
 export async function GET() {
   try {
-    const auth = await getAuthenticatedManager();
+    const auth = await getAuthenticatedStaff();
     if ('error' in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
+    if (auth.user.role === 'ADMIN') {
+      const allClients = await prisma.user.findMany({
+        where: { role: 'USER' },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          city: true,
+          state: true,
+          inviteCode: true,
+          status: true,
+          avatarUrl: true,
+          createdAt: true,
+          _count: {
+            select: {
+              individualTrips: true,
+              groupMemberships: true,
+            },
+          },
+        },
+      });
+
+      const clients = allClients.map((client) => ({
+        ...client,
+        linkedAt: client.createdAt,
+        _count: {
+          trips:
+            (client._count?.individualTrips || 0) +
+            (client._count?.groupMemberships || 0),
+          individualTrips: client._count?.individualTrips || 0,
+          groupMemberships: client._count?.groupMemberships || 0,
+        },
+      }));
+
+      return NextResponse.json(clients, { status: 200 });
+    }
+
     const links = await prisma.clientManager.findMany({
       where: {
-        managerId: auth.manager.id,
+        managerId: auth.user.id,
       },
       orderBy: {
         createdAt: 'desc',
@@ -126,11 +165,11 @@ export async function GET() {
 // --------------------------------------------------------
 // POST /api/admin/clients
 // Cria um novo cliente (USER) com inviteCode UUID e vincula
-// automaticamente ao MANAGER logado em ClientManager
+// em ClientManager
 // --------------------------------------------------------
 export async function POST(request: Request) {
   try {
-    const auth = await getAuthenticatedManager();
+    const auth = await getAuthenticatedStaff();
     if ('error' in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
@@ -142,6 +181,13 @@ export async function POST(request: Request) {
     const phone = typeof body.phone === 'string' && body.phone.trim() ? body.phone.trim() : null;
     const city = typeof body.city === 'string' && body.city.trim() ? body.city.trim() : null;
     const state = typeof body.state === 'string' && body.state.trim() ? body.state.trim().toUpperCase() : null;
+
+    const targetManagerId =
+      auth.user.role === 'ADMIN' &&
+      typeof body.managerId === 'string' &&
+      body.managerId.trim()
+        ? body.managerId.trim()
+        : auth.user.id;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -162,7 +208,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Se o agente não informar senha inicial, gera uma senha provisória segura
     const initialPassword =
       password.length >= 6
         ? password
@@ -198,19 +243,23 @@ export async function POST(request: Request) {
 
       await tx.clientManager.create({
         data: {
-          managerId: auth.manager.id,
+          managerId: targetManagerId,
           clientId: createdClient.id,
         },
       });
 
       await tx.auditLog.create({
         data: {
-          userId: auth.manager.id,
-          action: 'MANAGER_CREATED_CLIENT',
+          userId: auth.user.id,
+          action:
+            auth.user.role === 'ADMIN'
+              ? 'ADMIN_CREATED_CLIENT'
+              : 'MANAGER_CREATED_CLIENT',
           details: {
             clientId: createdClient.id,
             clientEmail: createdClient.email,
             inviteCode: createdClient.inviteCode,
+            managerId: targetManagerId,
           },
         },
       });
@@ -220,10 +269,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: 'Cliente cadastrado e vinculado à sua carteira com sucesso!',
+        message: 'Cliente cadastrado e vinculado com sucesso!',
         client: result,
-        // Retorna a senha inicial apenas se tiver sido gerada automaticamente,
-        // para que o agente possa repassar ao cliente caso deseje
         generatedPassword: password.length >= 6 ? undefined : initialPassword,
       },
       { status: 201 }
