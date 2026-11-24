@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   BarChart3,
+  Bot,
   Briefcase,
   Building2,
   ChevronRight,
+  Compass,
   Home,
   LogOut,
+  Map,
   Plane,
   Settings,
   Users,
@@ -26,6 +29,27 @@ interface SidebarProps {
   activeRoute?: string;
 }
 
+const VALID_ROLES: UserRole[] = ['USER', 'MANAGER', 'ADMIN'];
+
+function normalizeRole(value: unknown): UserRole | null {
+  if (typeof value !== 'string') return null;
+  const upper = value.trim().toUpperCase();
+  return VALID_ROLES.includes(upper as UserRole) ? (upper as UserRole) : null;
+}
+
+function readRoleFromStoredToken(): UserRole | null {
+  try {
+    const token = authStorage.getToken?.();
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return normalizeRole(payload?.role);
+  } catch {
+    return null;
+  }
+}
+
 export default function Sidebar({
   isOpen,
   onClose,
@@ -40,22 +64,31 @@ export default function Sidebar({
       setUserName(storedUser);
     }
 
-    const storedRole = localStorage.getItem('modus_user_role') as UserRole | null;
-    if (storedRole && ['USER', 'MANAGER', 'ADMIN'].includes(storedRole)) {
+    const storedRole =
+      normalizeRole(localStorage.getItem('modus_user_role')) ||
+      readRoleFromStoredToken();
+    if (storedRole) {
       setUserRole(storedRole);
     }
 
-    fetch('/api/user/profile', { cache: 'no-store', credentials: 'include' })
+    const token = authStorage.getToken?.();
+    fetch('/api/user/profile', {
+      cache: 'no-store',
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!data) return;
-        if (data.name) {
-          setUserName(data.name);
-          localStorage.setItem('modus_user_name', data.name);
+        const profile = data.user ?? data;
+        if (typeof profile.name === 'string' && profile.name.trim()) {
+          setUserName(profile.name);
+          localStorage.setItem('modus_user_name', profile.name);
         }
-        if (data.role && ['USER', 'MANAGER', 'ADMIN'].includes(data.role)) {
-          setUserRole(data.role);
-          localStorage.setItem('modus_user_role', data.role);
+        const apiRole = normalizeRole(profile.role);
+        if (apiRole) {
+          setUserRole(apiRole);
+          localStorage.setItem('modus_user_role', apiRole);
         }
       })
       .catch(() => {
@@ -107,61 +140,63 @@ export default function Sidebar({
   const isStaff = userRole === 'MANAGER' || userRole === 'ADMIN';
   const isAdmin = userRole === 'ADMIN';
 
-  const menuItems = [
+  const clientJourneyItems = [
     { id: 'index', label: 'Início', icon: Home, path: '/dashboard' },
-
-    // Exclusivo para Proprietário da Agência (ADMIN)
-    ...(isAdmin
-      ? [
-          {
-            id: 'owner',
-            label: 'Gestão da Agência',
-            icon: Building2,
-            path: '/dashboard/owner',
-          },
-          {
-            id: 'owner-clients',
-            label: 'Todos os Clientes',
-            icon: Users,
-            path: '/dashboard/owner/clients',
-          },
-          {
-            id: 'owner-trips',
-            label: 'Todas as Viagens',
-            icon: Plane,
-            path: '/dashboard/owner/trips',
-          },
-          {
-            id: 'owner-analytics',
-            label: 'Gráficos da Agência',
-            icon: BarChart3,
-            path: '/dashboard/owner/analytics',
-          },
-        ]
-      : []),
-
-    // Disponível para Agentes (MANAGER) e Proprietário (ADMIN)
-    ...(isStaff
-      ? [
-          {
-            id: 'admin',
-            label: 'Painel do Agente',
-            icon: Briefcase,
-            path: '/dashboard/admin',
-          },
-          {
-            id: 'admin-groups',
-            label: 'Grupos de Viagem',
-            icon: Users,
-            path: '/dashboard/admin/groups',
-          },
-        ]
-      : []),
-
-    { id: 'settings', label: 'Perfil & Configurações', icon: Settings, path: '/dashboard/settings' },
+    { id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard' },
+    { id: 'busca', label: 'Explorar Destinos', icon: Compass, path: '/dashboard' },
+    { id: 'assistente', label: 'Assistente de Viagem', icon: Bot, path: '/dashboard' },
   ];
 
+  const managerItems = isStaff
+    ? [
+        { id: 'admin', label: 'Painel do Agente', icon: Briefcase, path: '/dashboard/admin' },
+        { id: 'admin-groups', label: 'Grupos de Viagem', icon: Users, path: '/dashboard/admin/groups' },
+        { id: 'admin-trips', label: 'Roteiros & Viagens', icon: Plane, path: '/dashboard/admin/trips' },
+      ]
+    : [];
+
+  const adminItems = isAdmin
+    ? [
+        { id: 'owner', label: 'Gestão da Agência', icon: Building2, path: '/dashboard/owner' },
+        { id: 'owner-clients', label: 'Todos os Clientes', icon: Users, path: '/dashboard/owner/clients' },
+        { id: 'owner-trips', label: 'Todas as Viagens', icon: Plane, path: '/dashboard/owner/trips' },
+        { id: 'owner-analytics', label: 'Gráficos da Agência', icon: BarChart3, path: '/dashboard/owner/analytics' },
+      ]
+    : [];
+
   if (!isOpen) return null;
+
+  const renderNavLink = (item: {
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    path: string;
+  }) => {
+    const Icon = item.icon;
+    const isActive = activeRoute === item.id;
+    return (
+      <Link
+        key={item.id}
+        href={item.path}
+        onClick={onClose}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+          isActive
+            ? 'bg-sky-500/15 border border-sky-500/30 text-sky-700 dark:text-white font-bold'
+            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/60 hover:text-slate-950 dark:hover:text-white'
+        }`}
+      >
+        <Icon
+          size={18}
+          className={
+            isActive
+              ? 'text-sky-600 dark:text-sky-400'
+              : 'text-slate-500 dark:text-slate-400'
+          }
+        />
+        <span className="flex-1">{item.label}</span>
+      </Link>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -220,34 +255,37 @@ export default function Sidebar({
         </div>
 
         {/* Menus de Navegação */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeRoute === item.id;
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+          {adminItems.length > 0 && (
+            <div className="space-y-1">
+              <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                Agência (ADMIN)
+              </p>
+              {adminItems.map(renderNavLink)}
+            </div>
+          )}
 
-            return (
-              <Link
-                key={item.id}
-                href={item.path}
-                onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-sky-500/15 border border-sky-500/30 text-sky-700 dark:text-white font-bold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/60 hover:text-slate-950 dark:hover:text-white'
-                }`}
-              >
-                <Icon
-                  size={18}
-                  className={
-                    isActive
-                      ? 'text-sky-600 dark:text-sky-400'
-                      : 'text-slate-500 dark:text-slate-400'
-                  }
-                />
-                <span className="flex-1">{item.label}</span>
-              </Link>
-            );
-          })}
+          {managerItems.length > 0 && (
+            <div className="space-y-1">
+              <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                Operação do Agente
+              </p>
+              {managerItems.map(renderNavLink)}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              Jornada do Cliente
+            </p>
+            {clientJourneyItems.map(renderNavLink)}
+            {renderNavLink({
+              id: 'settings',
+              label: 'Perfil & Configurações',
+              icon: Settings,
+              path: '/dashboard/settings',
+            })}
+          </div>
         </div>
 
         {/* Seletor de Tema Claro/Escuro */}

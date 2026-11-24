@@ -1,40 +1,55 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'seu-segredo-jwt-super-seguro';
+const COOKIE_NAME = 'modus_auth_token';
 
-// Helper para extrair o usuário do token do cookie
-function getUserIdFromRequest(request: Request): string | null {
+interface TokenPayload {
+  userId?: string;
+  id?: string;
+}
+
+async function getUserIdFromRequest(request: Request): Promise<string | null> {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
-    const cookies = Object.fromEntries(
-      cookieHeader.split('; ').map((c) => {
-        const [key, ...v] = c.split('=');
-        return [key, v.join('=')];
-      })
-    );
+    const cookieStore = await cookies();
+    let token = cookieStore.get(COOKIE_NAME)?.value;
 
-    const token = cookies['modus_auth_token'];
+    if (!token) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.slice(7).trim();
+      }
+    }
+
     if (!token) return null;
 
-    const decoded: any = jwt.verify(token, JWT_SECRET);
-    return decoded.userId;
-  } catch (error) {
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return decoded.userId || decoded.id || null;
+  } catch {
     return null;
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const userId = getUserIdFromRequest(request);
+    const userId = await getUserIdFromRequest(request);
     if (!userId) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        inviteCode: true,
+        createdAt: true,
+      },
     });
 
     if (!user) {
@@ -50,21 +65,26 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const userId = getUserIdFromRequest(request);
+    const userId = await getUserIdFromRequest(request);
     if (!userId) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     const { name } = await request.json();
 
-    if (!name) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'O nome é obrigatório' }, { status: 400 });
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { name },
-      select: { id: true, name: true, email: true },
+      data: { name: name.trim() },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
     });
 
     return NextResponse.json(
