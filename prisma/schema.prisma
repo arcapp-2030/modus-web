@@ -65,6 +65,8 @@ model User {
   cnhDocumentUrl      String?
   passportDocumentUrl String?
   usVisaDocumentUrl   String?
+  documents        ClientDocument[] @relation("ClientDocuments")
+  uploadedDocs     ClientDocument[] @relation("UploadedDocuments")
 
   // Carteira do Agente (Client <-> Manager)
   managedClients      ClientManager[] @relation("ManagerRelations")
@@ -86,6 +88,26 @@ model User {
   updatedAt           DateTime        @updatedAt
 
   @@map("users")
+}
+
+model ClientDocument {
+  id           String   @id @default(cuid())
+  title        String
+  category     String   @default("OTHER") // PASSPORT | VISA | INSURANCE | VOUCHER | OTHER
+  fileUrl      String
+  fileName     String?
+  mimeType     String?
+  fileSize     Int?
+  notes        String?
+  userId       String
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  user         User     @relation("ClientDocuments", fields: [userId], references: [id], onDelete: Cascade)
+  uploadedBy   User?    @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([uploadedById])
 }
 
 // --------------------------------------------------------
