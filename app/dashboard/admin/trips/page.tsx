@@ -3,7 +3,17 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  CheckCircle2,
+  ArrowLeft,
+  ExternalLink,
+  User,
+  Users,
+} from 'lucide-react';
+import { UploadFileButton } from '@/components/UploadFileButton';
+import { ClientDocumentsSection } from '@/components/ClientDocumentsSection';
 
 interface ItineraryFormItem {
   title: string;
@@ -15,16 +25,37 @@ interface ItineraryFormItem {
   voucherFile: string;
 }
 
+interface ClientOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface GroupOption {
+  id: string;
+  name: string;
+  _count?: { members: number };
+}
+
 function AdminTripsForm() {
   const searchParams = useSearchParams();
   const preselectedClientId = searchParams.get('clientId') || '';
+  const preselectedGroupId = searchParams.get('groupId') || '';
 
-  const [clients, setClients] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [groups, setGroups] = useState<GroupOption[]>([]);
+
+  const [targetType, setTargetType] = useState<'INDIVIDUAL' | 'GROUP'>(
+    preselectedGroupId ? 'GROUP' : 'INDIVIDUAL'
+  );
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(preselectedClientId);
+  const [selectedGroupId, setSelectedGroupId] = useState(preselectedGroupId);
 
-  // Lista de itinerários criados para a viagem
+  // Campos de cada evento do itinerário
   const [itinerary, setItinerary] = useState<ItineraryFormItem[]>([]);
   const [itemTitle, setItemTitle] = useState('');
   const [itemSubtitle, setItemSubtitle] = useState('');
@@ -39,35 +70,49 @@ function AdminTripsForm() {
 
   useEffect(() => {
     if (preselectedClientId) {
+      setTargetType('INDIVIDUAL');
       setSelectedUserId(preselectedClientId);
     }
+    if (preselectedGroupId) {
+      setTargetType('GROUP');
+      setSelectedGroupId(preselectedGroupId);
+    }
 
-    async function fetchClients() {
+    async function fetchOptions() {
       try {
-        const res = await fetch('/api/admin/clients');
-        if (res.ok) {
-          const data = await res.json();
-          setClients(data);
+        const [clientsRes, groupsRes] = await Promise.all([
+          fetch('/api/admin/clients', { cache: 'no-store', credentials: 'include' }),
+          fetch('/api/admin/groups', { cache: 'no-store', credentials: 'include' }),
+        ]);
+
+        if (clientsRes.ok) {
+          const clientsData = await clientsRes.json();
+          setClients(Array.isArray(clientsData) ? clientsData : []);
+        }
+        if (groupsRes.ok) {
+          const groupsData = await groupsRes.json();
+          setGroups(Array.isArray(groupsData) ? groupsData : []);
         }
       } catch (e) {
-        console.error('Erro ao carregar clientes:', e);
+        console.error('Erro ao carregar clientes/grupos:', e);
       }
     }
-    fetchClients();
-  }, [preselectedClientId]);
+
+    fetchOptions();
+  }, [preselectedClientId, preselectedGroupId]);
 
   const handleAddItineraryItem = () => {
-    if (!itemTitle) return;
+    if (!itemTitle.trim()) return;
     setItinerary((prev) => [
       ...prev,
       {
-        title: itemTitle,
-        subtitle: itemSubtitle,
+        title: itemTitle.trim(),
+        subtitle: itemSubtitle.trim(),
         type: itemType,
-        location: itemLocation,
+        location: itemLocation.trim(),
         date: itemDate,
         time: itemTime,
-        voucherFile: itemVoucher,
+        voucherFile: itemVoucher.trim(),
       },
     ]);
     setItemTitle('');
@@ -88,15 +133,21 @@ function AdminTripsForm() {
     setMessage('');
 
     try {
+      const payload = {
+        title,
+        destination,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        userId: targetType === 'INDIVIDUAL' ? selectedUserId : null,
+        groupId: targetType === 'GROUP' ? selectedGroupId : null,
+        itinerary,
+      };
+
       const res = await fetch('/api/admin/trips', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          destination,
-          userId: selectedUserId,
-          itinerary,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -105,6 +156,8 @@ function AdminTripsForm() {
       setMessage('Viagem e itinerário cadastrados com sucesso!');
       setTitle('');
       setDestination('');
+      setStartDate('');
+      setEndDate('');
       setItinerary([]);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar';
@@ -128,19 +181,25 @@ function AdminTripsForm() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-white transition-colors">
-      <div className="p-6 md:p-10 max-w-4xl mx-auto">
-        {/* Botão de Retorno condicional */}
-        <div className="mb-6 flex items-center justify-between">
+      <div className="p-6 md:p-10 max-w-4xl mx-auto space-y-8">
+        {/* Botão de Retorno */}
+        <div className="flex items-center justify-between">
           <Link
-            href={selectedUserId ? `/dashboard/admin/clients/${selectedUserId}` : '/dashboard/admin'}
+            href="/dashboard/admin"
             className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
-            <ArrowLeft size={16} />{' '}
-            {selectedUserId ? 'Voltar ao Perfil do Cliente' : 'Voltar ao Painel'}
+            <ArrowLeft size={16} /> Voltar ao Painel do Agente
+          </Link>
+
+          <Link
+            href="/dashboard/admin/groups"
+            className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline"
+          >
+            Gerenciar Grupos →
           </Link>
         </div>
 
-        <div className="mb-8">
+        <div>
           <span className="text-xs font-extrabold text-sky-600 dark:text-sky-400 tracking-[2px] uppercase">
             PAINEL DO AGENTE DE VIAGEM
           </span>
@@ -148,29 +207,27 @@ function AdminTripsForm() {
             Cadastro de Viagens & Itinerários
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Monte o cronograma passo a passo e anexe os vouchers do passageiro.
+            Monte o cronograma passo a passo e anexe os vouchers diretamente no storage.
           </p>
         </div>
 
         {message && (
-          <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
             <CheckCircle2 size={16} className="shrink-0" />
             <span>{message}</span>
-            {selectedUserId && (
-              <Link
-                href={`/dashboard/admin/clients/${selectedUserId}`}
-                className="ml-auto underline font-bold text-emerald-800 dark:text-emerald-300"
-              >
-                Ver perfil do cliente
-              </Link>
-            )}
+            <Link
+              href="/dashboard/admin"
+              className="ml-auto underline font-bold text-emerald-800 dark:text-emerald-300"
+            >
+              Ir ao Painel
+            </Link>
           </div>
         )}
 
         <form onSubmit={handleSubmitTrip} className="space-y-6">
           {/* Bloco 1: Informações da Viagem */}
           <div className={cardClass}>
-            <h2 className={sectionTitleClass}>1. Dados da Viagem & Cliente</h2>
+            <h2 className={sectionTitleClass}>1. Dados da Viagem & Destinatário</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -198,31 +255,104 @@ function AdminTripsForm() {
               </div>
             </div>
 
-            <div>
-              <label className={labelClass}>Cliente Vinculado</label>
-              {clients.length > 0 ? (
-                <select
-                  required
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Selecione um cliente...</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name || 'Sem Nome'} ({c.email})
-                    </option>
-                  ))}
-                </select>
-              ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Data de Início</label>
                 <input
-                  type="text"
-                  required
-                  placeholder="Informe o ID (UUID) do usuário cliente"
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className={inputClass}
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className={`${inputClass} dark:[color-scheme:dark]`}
                 />
+              </div>
+
+              <div>
+                <label className={labelClass}>Data de Término</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className={`${inputClass} dark:[color-scheme:dark]`}
+                />
+              </div>
+            </div>
+
+            {/* Seletor Individual vs Grupo */}
+            <div className="space-y-3 pt-1">
+              <label className={labelClass}>Modalidade da Viagem</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTargetType('INDIVIDUAL')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                    targetType === 'INDIVIDUAL'
+                      ? 'bg-sky-600 text-white border-sky-600'
+                      : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-800'
+                  }`}
+                >
+                  <User size={14} />
+                  <span>Cliente Individual</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTargetType('GROUP')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                    targetType === 'GROUP'
+                      ? 'bg-sky-600 text-white border-sky-600'
+                      : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-800'
+                  }`}
+                >
+                  <Users size={14} />
+                  <span>Grupo de Viagem</span>
+                </button>
+              </div>
+
+              {targetType === 'INDIVIDUAL' ? (
+                <div>
+                  <label className={labelClass}>Cliente Vinculado</label>
+                  {clients.length > 0 ? (
+                    <select
+                      required
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="">Selecione um cliente...</option>
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name || 'Sem Nome'} ({c.email})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Informe o ID do usuário cliente"
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className={inputClass}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className={labelClass}>Grupo de Viagem</label>
+                  <select
+                    required
+                    value={selectedGroupId}
+                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Selecione um grupo...</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} ({g._count?.members ?? 0} membros)
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
           </div>
@@ -258,6 +388,17 @@ function AdminTripsForm() {
               </div>
             </div>
 
+            <div>
+              <label className={labelClass}>Subtítulo / Observação Rápida (opcional)</label>
+              <input
+                type="text"
+                placeholder="Ex: Embarque no Terminal 3 • Localizador ABC123"
+                value={itemSubtitle}
+                onChange={(e) => setItemSubtitle(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className={labelClass}>Local / Aeroporto</label>
@@ -291,14 +432,14 @@ function AdminTripsForm() {
               </div>
             </div>
 
-            <div>
-              <label className={labelClass}>Link do Voucher ou Documento PDF</label>
-              <input
-                type="text"
-                placeholder="Ex: https://storage.modustravel.com.br/vouchers/voo-jl048.pdf"
-                value={itemVoucher}
-                onChange={(e) => setItemVoucher(e.target.value)}
-                className={inputClass}
+            {/* Upload de Voucher para HostGator */}
+            <div className="space-y-2 pt-1">
+              <label className={labelClass}>Voucher ou Comprovante (PDF / Imagem)</label>
+              <UploadFileButton
+                label="Anexar Voucher (HostGator)"
+                value={itemVoucher || null}
+                onUploaded={(uploaded) => setItemVoucher(uploaded.url)}
+                onClear={() => setItemVoucher('')}
               />
             </div>
 
@@ -321,9 +462,9 @@ function AdminTripsForm() {
                 {itinerary.map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors"
+                    className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-xs font-bold text-sky-600 dark:text-sky-400 mr-2">
                         [{item.type.toUpperCase()}]
                       </span>
@@ -334,11 +475,22 @@ function AdminTripsForm() {
                         {item.date} {item.time && `às ${item.time}`}{' '}
                         {item.location && `• ${item.location}`}
                       </p>
+                      {item.voucherFile && (
+                        <a
+                          href={item.voucherFile}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                        >
+                          <span>Voucher anexado</span>
+                          <ExternalLink size={11} />
+                        </a>
+                      )}
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(idx)}
-                      className="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 p-1.5 transition-colors"
+                      className="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 p-1.5 transition-colors shrink-0"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -358,6 +510,9 @@ function AdminTripsForm() {
             </button>
           </div>
         </form>
+
+        {/* Bloco 4: Documentos Pessoais do Cliente (Passaporte, Visto, Seguro) */}
+        {clients.length > 0 && <ClientDocumentsSection clients={clients} />}
       </div>
     </div>
   );

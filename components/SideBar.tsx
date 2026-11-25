@@ -72,7 +72,7 @@ export default function Sidebar({
     }
 
     const token = authStorage.getToken?.();
-    fetch('/api/user/profile', {
+    fetch('/api/user/settings', {
       cache: 'no-store',
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -142,7 +142,7 @@ export default function Sidebar({
 
   const clientJourneyItems = [
     { id: 'index', label: 'Início', icon: Home, path: '/dashboard' },
-    { id: 'orbis', label: 'Minha Jornada', icon: Map, path: '/dashboard' },
+    { id: 'dashboard', label: 'Minha Jornada', icon: Map, path: '/dashboard' },
     { id: 'busca', label: 'Explorar Destinos', icon: Compass, path: '/dashboard' },
     { id: 'assistente', label: 'Assistente de Viagem', icon: Bot, path: '/dashboard' },
   ];
